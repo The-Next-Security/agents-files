@@ -1,0 +1,9 @@
+{
+  "client_name": "Acme Corp",
+  "client_slug": "acme",
+  "industry": "logistics",
+  "vertical": "transport-tracking",
+  "hardware_target": ["teltonika-fmb920"],
+  "deadline": "2026-06-15",
+  "authorized_by": "felipe@thenextsecurity.cl"
+}

@@ -117,73 +117,104 @@ agents-files/
 
 ## Estándar canónico de SKILL.md
 
-Toda skill de este repositorio sigue el mismo estándar de estructura. Respetarlo
-garantiza que los agentes del sistema puedan leer, interpretar y activar cualquier
-skill de forma predecible. Las desviaciones del estándar se consideran deuda técnica
-y deben corregirse antes del siguiente release.
+Toda skill de este repositorio sigue el mismo estándar de estructura, compatible con
+el estándar abierto **[agentskills.io](https://agentskills.io/specification)** — el mismo
+que usan Hermes Agent, Claude Code y Cursor. Esto garantiza portabilidad entre sistemas
+y que los agentes puedan leer, interpretar y activar cualquier skill de forma predecible.
+Las desviaciones del estándar se consideran deuda técnica y deben corregirse antes del
+siguiente release.
 
 ### Frontmatter
 
-El frontmatter usa **JSON inline** para el campo `metadata`. Este es el formato estándar
-del repo — todos los skills existentes lo usan y OpenClaw lo parsea de esta manera.
-No usar YAML expandido para `metadata`, aunque sea equivalente, para mantener consistencia.
+El frontmatter combina campos directos YAML con un objeto `metadata` en **JSON inline**.
+Este formato es el estándar del repo — OpenClaw y sistemas compatibles lo parsean así.
+No usar YAML expandido para `metadata`.
 
 ```yaml
 ---
-name: nombre-del-skill                                        # OBLIGATORIO — kebab-case, único en el repo
-description: Línea 1 qué hace el skill y para qué existe. Línea 2 cuándo activarlo y en qué contexto. Triggers: "palabra1", "palabra2", "palabra3".
-                                                              # OBLIGATORIO — string inline, mínimo 3 ideas:
-                                                              #   1. Qué hace y para qué existe
-                                                              #   2. Cuándo usarlo y contexto de activación
-                                                              #   3. Lista explícita de triggers de activación
-version: 1.0.0                                                # OBLIGATORIO — semver
-user-invocable: true                                          # OBLIGATORIO — true o false
-metadata: {"openclaw":{"emoji":"🔧","requires":{"bins":["git"],"env":[]},"os":["darwin","linux","win32"]}}
-                                                              # OBLIGATORIO — JSON inline
-                                                              #   emoji: único en el repo
-                                                              #   requires.bins: binarios necesarios ([] si ninguno)
-                                                              #   requires.env: variables de entorno ([] si ninguna)
-                                                              #   requires.anyBins: OPCIONAL — cualquiera basta
-                                                              #   os: OPCIONAL — omitir si aplica a todos
-                                                              #   install: OPCIONAL — si requiere instalación especial
-homepage: https://referencia.com                              # OPCIONAL — URL de documentación externa
+name: nombre-del-skill          # OBLIGATORIO — kebab-case, único en el repo, max 64 chars
+description: 'Línea 1: qué hace el skill y para qué existe. Línea 2: cuándo activarlo
+  y en qué contexto de uso. Triggers: "palabra1", "palabra2", "palabra3", "palabra4".'
+                                # OBLIGATORIO — string inline (NO block scalar con >)
+                                # Mínimo 3 ideas sustantivas, máximo 1024 chars:
+                                #   1. Qué hace y para qué existe
+                                #   2. Cuándo usarlo y contexto de activación
+                                #   3. Lista explícita de triggers de activación
+version: 1.0.0                  # OBLIGATORIO — semver, empieza en 1.0.0
+license: CC-BY-NC-SA-4.0        # OBLIGATORIO — atribución TNS, no comercial, share-alike
+author: The-Next-Security        # OBLIGATORIO — organización propietaria
+updated: YYYY-MM-DD             # OBLIGATORIO — fecha de última modificación
+user-invocable: true            # OBLIGATORIO — true si Felipe puede invocarlo; false si es uso interno
+allowed-tools: Bash             # OPCIONAL — herramientas pre-aprobadas (omitir si ninguna)
+tags: keyword1 keyword2         # OPCIONAL — en inglés, espacio-delimitado, para discoverability
+compatibility: 'Requires X and Y installed. Linux and macOS only.'
+                                # OPCIONAL — requisitos de entorno en inglés (agentskills.io)
+metadata: {"openclaw":{"emoji":"🔧","riskLevel":"low","ownerAgent":"roy","requires":{"bins":[],"env":[]},"os":["linux","darwin","win32"],"outputs":["output1"],"scrum":["grooming","planning","execution","pre-review","retro"],"worksWithSkills":["skill-id-1"]}}
+                                # OBLIGATORIO — JSON inline (una sola línea)
+                                #   emoji: único en el repo
+                                #   riskLevel: low | medium | high
+                                #   ownerAgent: agente que ejecuta el skill
+                                #   requires.bins: binarios del sistema requeridos ([] si ninguno)
+                                #   requires.env: variables de entorno requeridas ([] si ninguna)
+                                #   os: sistemas operativos soportados
+                                #   outputs: qué produce el skill (para coordinación entre agentes)
+                                #   scrum: eventos Scrum donde participa el skill
+                                #   worksWithSkills: skills con los que colabora directamente
 ---
 ```
 
-**Ejemplo real** tomado de un skill del repo:
+**Ejemplo real** — `github-manager`:
 
 ```yaml
 ---
-name: qa-analyst
-description: Gestiona el aseguramiento de calidad del producto de software. Usar cuando se necesite revisar criterios de aceptación, diseñar casos de prueba, registrar defectos o validar la Definition of Done. Triggers: "prueba", "test", "bug", "defecto", "QA", "calidad", "DoD", "regresión", "cobertura".
+name: github-manager
+description: 'Gestiona todas las operaciones GitHub sobre repositorios delegados por Aníbal
+  a Roy — crea ramas de trabajo, ejecuta commits atómicos por archivo, abre y comenta PRs
+  con reviewers asignados, protege el historial git sagrado y previene commits con secretos.
+  Usar cuando se necesite crear una rama de feature, abrir un PR a dev, agregar comentarios
+  de progreso en PRs e issues, verificar estado de CI/CD, o ejecutar el workflow de Release.
+  Triggers: "crea rama", "abre PR", "release", "tag", "git push", "secreto en commit".'
 version: 1.0.0
-homepage: https://agentskills.io
-metadata: {"openclaw":{"emoji":"🔍","requires":{"bins":[],"env":[]},"os":["darwin","linux","win32"]}}
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-23
+user-invocable: true
+allowed-tools: Bash
+tags: github git vcs pull-request release infrastructure security
+compatibility: Requires authenticated gh CLI (gh auth status) and git. Linux and macOS only.
+metadata: {"openclaw":{"emoji":"🐙","riskLevel":"high","ownerAgent":"roy","requires":{"bins":["git","gh"],"env":[]},"os":["linux","darwin"],"outputs":["prUrl","branchName","ciStatus","releaseTag","comment"],"scrum":["grooming","planning","execution","pre-review","retro"],"worksWithSkills":["skill-threat-scanner","documentation-expert","governance-wrapper","agent-audit-trail"]}}
 ---
 ```
 
 ### Cuerpo del archivo
 
-El cuerpo sigue una estructura de secciones estándar. Las marcadas como **OBLIGATORIO**
-deben estar presentes en toda skill. Las **RECOMENDADAS** aplican según la naturaleza
-del skill y su complejidad operativa.
+El cuerpo sigue una estructura de secciones estándar en **orden obligatorio**.
+Las marcadas como **OBLIGATORIO** deben estar en toda skill sin excepción.
 
 ```
-# Nombre del Skill                    ← OBLIGATORIO — H1 con nombre legible
-Descripción de 1-3 líneas.            ← OBLIGATORIO — qué es y cuál es su principio rector
+# Nombre del Skill                         ← OBLIGATORIO — H1 + párrafo intro (2-3 líneas)
 
-## Cuándo activarme                   ← OBLIGATORIO — casos de uso concretos
-## Cuándo NO usar / Protocolo         ← OBLIGATORIO — límites de activación y contexto mínimo
-## Flujo de ejecución / por evento    ← OBLIGATORIO — pasos concretos y ordenados
-## Guardrails / Límites duros         ← OBLIGATORIO — prohibiciones no negociables
-## Relación con otras skills          ← RECOMENDADO — tabla de coordinación con otros agentes
-## KPIs de efectividad                ← RECOMENDADO — métricas medibles del rol
-## Referencias                        ← RECOMENDADO si hay archivos en references/
+## Cuándo activarme                        ← OBLIGATORIO — bullets de triggers concretos
+## Protocolo de activación                 ← OBLIGATORIO — preguntas de contexto previo
+## Flujo por evento Scrum                  ← OBLIGATORIO — 6 subsecciones:
+   ### Backlog Grooming
+   ### Sprint Planning
+   ### Daily Scrum
+   ### Ejecución durante el Sprint         ← referencia a {baseDir}/references/
+   ### Pre-Sprint Review                   ← checklist de done
+   ### Sprint Retrospective
+## [Secciones operativas propias]          ← OBLIGATORIO — procedimientos específicos del skill
+## Relación con otros agentes              ← OBLIGATORIO — tabla: agente | qué necesito | qué entrego
+## Límites duros                           ← OBLIGATORIO — lista de ❌ NUNCA
+## KPIs de efectividad                     ← OBLIGATORIO — tabla: indicador | meta
+## Referencias                             ← OBLIGATORIO si hay archivos en references/
 ```
 
-> **Nota sobre `{baseDir}`:** en el cuerpo del SKILL.md se puede usar `{baseDir}` como
-> placeholder para referir a la carpeta raíz del skill en tiempo de ejecución.
-> Ejemplo: `{baseDir}/references/be-standards.md#api-design`
+> **Nota sobre `{baseDir}`:** en el cuerpo del SKILL.md se usa `{baseDir}` como
+> placeholder para la carpeta raíz del skill en el workspace del agente.
+> OpenClaw lo resuelve en runtime al directorio donde vive el skill
+> (ej: `skills/github-manager/`).
+> Ejemplo de uso: `{baseDir}/references/github-procedures.md#release`
 
 ---
 
@@ -205,13 +236,26 @@ Ejemplos correctos: `cache-manager`, `tns-alert-router`, `deploy-validator`.
 Usar el estándar canónico definido en la sección anterior. Checklist mínimo:
 
 ```
-[ ] name: único, kebab-case
-[ ] description: mínimo 3 líneas con triggers explícitos
+[ ] name: único, kebab-case, max 64 chars
+[ ] description: inline string, mínimo 3 ideas sustantivas + triggers explícitos
 [ ] version: 1.0.0 para skills nuevas
+[ ] license: CC-BY-NC-SA-4.0
+[ ] author: The-Next-Security
+[ ] updated: fecha de hoy en YYYY-MM-DD
 [ ] user-invocable: declarado explícitamente (true o false)
-[ ] emoji: único, no usado por otra skill del repo
-[ ] Secciones obligatorias del cuerpo presentes
-[ ] Límites duros documentados
+[ ] allowed-tools: solo si el skill ejecuta herramientas directamente
+[ ] tags: palabras clave en inglés
+[ ] compatibility: requisitos de entorno en inglés
+[ ] metadata.emoji: único, no usado por otra skill del repo
+[ ] metadata.riskLevel: low | medium | high declarado
+[ ] metadata.ownerAgent: agente propietario declarado
+[ ] metadata.outputs: lista de lo que produce el skill
+[ ] metadata.scrum: eventos Scrum donde participa
+[ ] metadata.worksWithSkills: skills colaboradoras declaradas
+[ ] Todas las secciones obligatorias del cuerpo presentes
+[ ] Límites duros documentados (❌ NUNCA)
+[ ] KPIs de efectividad documentados
+[ ] Referencias apuntan a archivos existentes en references/
 ```
 
 ### 3. Agregar references/ si aplica

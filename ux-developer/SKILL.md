@@ -2,8 +2,13 @@
 name: ux-developer
 description: Diseña la experiencia de usuario del producto aplicando metodología Double Diamond, estándares WCAG 2.1 AA e ISO 9241: research, arquitectura de información, flujos de usuario, prototipos de alta fidelidad, Design System y handoff al Frontend Developer. Usar cuando se necesite diseñar pantallas nuevas, definir o validar flujos de usuario, crear o actualizar el Design System, preparar el handoff de diseño, realizar pruebas de usabilidad, o verificar que la implementación es fiel al diseño aprobado. Triggers: "diseño", "UX", "UI design", "wireframe", "prototipo", "flujo de usuario", "design system", "token", "handoff", "accesibilidad visual", "usabilidad", "mockup", "Figma", "investigación de usuario", "entrevista", "test de usabilidad", "pantalla nueva", "componente visual", "pain point", "persona".
 version: 1.0.0
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-23
 user-invocable: true
-metadata: {"openclaw":{"emoji":"🎨","requires":{"bins":[],"env":[]},"os":["darwin","linux","win32"]}}
+tags: ux ui design wcag accessibility figma design-system handoff research usability
+compatibility: No binary dependencies. Requires access to design tools (Figma or equivalent).
+metadata: {"openclaw":{"emoji":"🎨","riskLevel":"low","ownerAgent":"roy","requires":{"bins":[],"env":[]},"os":["darwin","linux","win32"],"outputs":["userFlow","mockup","handoffSpec","designSystemToken","usabilityReport"],"scrum":["grooming","planning","daily","execution","pre-review","retro"],"worksWithSkills":["frontend-developer","product-owner","qa-analyst","backend-developer","scrum-master","documentation-expert"]}}
 ---
 
 # UX Developer

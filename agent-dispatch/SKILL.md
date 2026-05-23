@@ -1,108 +1,257 @@
 ---
 name: agent-dispatch
-description: 'Spawna workers persistentes (backend-dev, frontend-dev, qa-analyst) usando sessions_spawn. Usar cuando la tarea requiere delegar implementación de código, revisión de PR o QA a un worker de Capa 2. Triggers: "implementa", "crea endpoint", "abre PR", "review PR", "QA", "backend", "frontend", "qa", "spawna worker", "delega tarea", "dispatch".'
+description: Precondición obligatoria antes de cualquier spawn de worker — verifica idempotencia en sprint-state.json, construye el task prompt con contexto completo (worktree, acceptance criteria, repo, branch, regla D-07) y lo entrega listo para /subagents spawn. Usar cuando Roy va a delegar implementación, QA o diagnóstico a un worker de Capa 2 (backend-dev, frontend-dev, qa-analyst). Triggers: "spawna worker", "delega tarea", "dispatch", "implementa", "crea endpoint", "backend", "frontend", "qa", "review PR", "respawnear worker".
+version: 1.0.0
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-23
+user-invocable: true
+tags: dispatch spawn worker delegation orchestration idempotency scrum prompt-engineering
+compatibility: Requires sprint-state.json readable via exec+cat. Requires /subagents spawn available in Roy tool list.
+metadata: {"openclaw":{"emoji":"🚀","riskLevel":"high","ownerAgent":"roy","requires":{"bins":[],"env":[]},"os":["linux","darwin"],"outputs":["spawnPrompt","auditEntry","workerSessionId"],"scrum":["planning","execution","pre-review"],"worksWithSkills":["agent-audit-trail","governance-wrapper","giraffe-guard","tns-debugger-triage","product-owner"]}}
 ---
 
-# Agent Dispatch — Cómo spawnar workers en TNS
+# Agent Dispatch
 
-## ⚠️ REGLA CRÍTICA ANTES DE CUALQUIER SPAWN
+Precondición obligatoria antes de cualquier `/subagents spawn`. Su rol no es ejecutar el
+spawn, sino garantizar que cada spawn sea correcto, idempotente y trazable: verifica que
+el worker no está ya activo, construye el task prompt con todos los datos que el worker
+necesita para operar sin ambigüedad, y deja el audit trail antes y después del spawn.
 
-**`agentId` es OBLIGATORIO y debe ser el ID del worker target, NO "roy".**
+**Roy no improvisa prompts al spawnar.** Toda delegación a un worker pasa por este skill.
 
-Sin `agentId`, OpenClaw spawnea otro Roy en vez del worker. Siempre verifica:
-- Backend → `agentId: "backend-dev"`
-- Frontend → `agentId: "frontend-dev"`
-- QA → `agentId: "qa-analyst"`
+---
 
-## Tool disponible: `sessions_spawn`
+## Cuándo activarme
 
-Cuando eres spawneado por Anibal como subagente (depth 1), **tienes `sessions_spawn` disponible** en tu tool list. Úsalo directamente — no uses exec, no uses /subagents slash command.
+- Roy va a delegar implementación de código a `backend-dev` o `frontend-dev`
+- Roy va a delegar review de PR a `qa-analyst`
+- Roy detecta que un worker anterior falló y evalúa si respawnear
+- Roy quiere paralelizar dos features en workers separados
+- Una feature se asignó en sprint-state.json y aún no tiene `workerSessionId`
+
+---
+
+## Protocolo de activación
+
+Antes de operar, confirmar:
+
+```
+# ¿El issue/story tiene acceptance criteria claros?
+#   Si NO → activar product-owner primero. No spawnar sin mini-spec.
+# ¿Existe worktree libre para el worker target?
+#   Verificar: exec "git worktree list" en el repo target
+# ¿Ya existe un workerSessionId activo para este issue en sprint-state.json?
+#   Si SÍ → NO spawnar. El worker ya existe. Ver sección "Idempotencia".
+# ¿El riskLevel de la tarea es high?
+#   Si SÍ → governance-wrapper ya está activo. Verificar que no hay bloqueo.
+```
+
+Si no hay acceptance criteria → no spawnar. Activar `product-owner` y esperar mini-spec.
+
+---
+
+## Flujo por evento Scrum
+
+### Backlog Grooming
+
+- Revisar items del sprint-state.json en estado `backlog` que no tengan `assignedRole` definido
+- Marcar cuáles necesitarán spawn de worker vs. cuáles Roy puede resolver directo con una skill
+- Aplicar heurística de escalamiento (ver sección "Heurística de escalamiento")
+- Señal de alerta: si un issue tiene `confidence: low` en routingDecision → activar
+  `product-owner` antes de incluir en sprint
+
+### Sprint Planning
+
+- Para cada story comprometida que requiera worker: verificar que el repo target tiene rama
+  `dev` actualizada
+- Confirmar que los workspaces de los workers existen: `agents/backend-dev/`,
+  `agents/frontend-dev/`, `agents/qa-analyst/`
+- Si un workspace no existe → loggear, avisar a Felipe. No planificar esa story.
+- Crear entrada anticipada en sprint-state.json con `status: in-sprint` y `assignedRole`
+  definido
+
+### Daily Scrum
+
+```
+Estado de workers: [workerSessionId activos en sprint-state.json → status + prUrl si aplica]
+Spawns pendientes: [stories en in-sprint sin workerSessionId asignado]
+Bloqueos: [issues sin acceptance criteria / worktrees en conflicto / CI rojo sin diagnóstico]
+```
+
+### Ejecución durante el Sprint
+
+Ver procedimientos detallados en `{baseDir}/references/dispatch-procedures.md`:
+- Verificación de idempotencia → sección "Idempotencia"
+- Construcción del task prompt → sección "Task prompt"
+- Spawn y registro en sprint-state.json → sección "Spawn"
+- Respawn tras fallo de QA → sección "Respawn"
+- Paralelismo de workers → sección "Paralelismo"
+
+### Pre-Sprint Review
+
+```
+[ ] Todos los items in-progress tienen workerSessionId registrado en sprint-state.json
+[ ] Ningún worktree activo sin PR asociado (gh pr list para verificar)
+[ ] Workers que fallaron QA tienen diagnóstico en ~/tns-debug/rca-*.md
+[ ] Audit trail completo: cada spawn registrado vía agent-audit-trail
+[ ] Sin worktrees huérfanos: git worktree list no muestra paths sin PR
+```
+
+### Sprint Retrospective
+
+- ¿Cuántos spawns requirieron respawn? Causa raíz de cada uno
+- ¿Algún spawn se ejecutó sin idempotencia verificada? (gap crítico)
+- ¿El task prompt fue suficiente o el worker pidió clarificaciones? → mejorar template
+- Propuestas de mejora al template del task prompt o al flujo de QA
+
+---
+
+## Heurística de escalamiento
+
+Ante duda, escalar **una capa**, no dos. El costo de spawn sube exponencialmente.
+
+```
+¿La tarea cabe en mi razonamiento directo?
+  → Hacerla directo. Sin skill, sin spawn.
+
+¿La tarea requiere leer código o ejecutar script rápido?
+  → Usar skill coding-agent (efímero ligero, ~5K-15K tokens).
+
+¿La tarea es una feature completa con commits, PR y QA?
+  → Spawnar worker persistente (~30K-100K tokens + tokens del worker).
+
+¿Dos features son independientes Y no comparten worktree?
+  → Paralelizar SOLO si ambas están en sprint activo y hay capacidad.
+  → Costo: 2× + overhead de coordinación. Requiere aprobación de Felipe.
+```
+
+Ver árbol de decisión completo con costos en:
+`{baseDir}/references/dispatch-procedures.md#escalamiento`
+
+---
+
+## Idempotencia — verificación obligatoria
+
+Antes de cualquier spawn, leer `sprint-state.json` (disponible como symlink en workspace):
+
+```bash
+exec "cat scrum/sprint-state.json"
+```
+
+Buscar en `inProgress[]` un item donde `id` coincida con el issue target.
+
+| Escenario | Acción |
+|-----------|--------|
+| Item no existe en `inProgress` | Proceder al spawn. Registrar `workerSessionId` al spawnear. |
+| Item existe con `workerSessionId` y `status: in-progress` | **NO spawnar.** Worker ya activo. Reportar a Felipe. |
+| Item existe con `workerSessionId` y QA falló | Activar `tns-debugger-triage` primero. Respawn solo tras RCA. |
+| Item existe sin `workerSessionId` | Inconsistencia. Registrar entry y spawnar con idempotencia forzada. |
+
+El `workerSessionId` sigue el formato: `<agentId>-<tipo>-<número>`.
+Ejemplos: `backend-dev-fix-pr-121`, `qa-analyst-pr-87`, `backend-dev-issue-115`.
+
+---
 
 ## Workers disponibles
 
-| Worker | agentId (OBLIGATORIO) | Cuándo |
-|--------|----------------------|--------|
-| Backend Dev | `"backend-dev"` | APIs, endpoints, servicios, DB, lógica de negocio |
-| Frontend Dev | `"frontend-dev"` | UI, componentes React/Next, integraciones cliente |
-| QA Analyst | `"qa-analyst"` | Revisar PRs, validar DoD, test plans |
+| Worker | agentId | Cuándo delegarle |
+|--------|---------|-----------------|
+| `backend-dev` | `backend-dev` | Implementación de código, APIs, endpoints, DB, lógica de negocio, scripts |
+| `frontend-dev` | `frontend-dev` | UI, componentes React, integraciones cliente, CSS |
+| `qa-analyst` | `qa-analyst` | Review de PR, validación DoD, test plans, aprobación o request-changes |
 
-El `agentDir` y `workspaceDir` los resuelve OpenClaw automáticamente desde el `agentId` — no los pases.
+Roy no usa `backend-developer`, `frontend-developer` ni `qa-analyst` directamente.
+Delega a los workers que tienen esas skills en su allowlist.
 
-## Parámetros del tool
+---
 
-```json
-{
-  "agentId": "<OBLIGATORIO: backend-dev | frontend-dev | qa-analyst>",
-  "runtime": "subagent",
-  "label": "<worker>-<feature-slug>",
-  "task": "<prompt completo para el worker>",
-  "cwd": "/opt/tns-workbench/autonomous-workbench",
-  "timeoutSeconds": 1800,
-  "runTimeoutSeconds": 1800,
-  "cleanup": "delete",
-  "sandbox": "inherit"
-}
+## Construcción del task prompt
+
+El task prompt es el documento que el worker recibe al ser spawneado. Debe ser
+autocontenido: el worker no tiene contexto previo de la sesión de Roy.
+
+**Secciones obligatorias del task prompt:**
+
+```
+Tarea: <descripción concisa de qué hacer>
+
+Repo local: <ruta absoluta en el servidor>
+Branch base: <dev>
+Feature branch: <feat/slug o fix/slug>
+Worktree: <ruta del worktree asignado>
+
+Acceptance criteria:
+- <criterio 1>
+- <criterio 2>
+
+Pasos sugeridos:
+1. <paso>
+2. <paso>
+...N. Abrir PR a dev con reviewers: andresTNS, Bufigol
+
+Reglas que aplican:
+- D-07: NUNCA commit/push directo a dev/main/master. Solo vía feature branch + PR.
+- Un commit por archivo modificado. Historial git es sagrado.
+- PR requiere 2 approvals incluyendo andresTNS.
+
+Entrega esperada: <PR número + URL / reporte QA / RCA>
 ```
 
-## Flujo completo para una feature backend
+Ver template completo con ejemplos reales (backend, frontend, QA) en:
+`{baseDir}/references/dispatch-procedures.md#task-prompt`
 
-### Paso 1 — Spawnar backend-dev
+---
 
-```json
-{
-  "agentId": "backend-dev",
-  "runtime": "subagent",
-  "label": "backend-dev-feat-get-health",
-  "task": "Tarea: implementa GET /health en infra/webhooks/github-handler.js\n\nRepo local: /opt/tns-workbench/autonomous-workbench\nBranch base: dev\nFeature branch: feat/get-health-endpoint\nWorktree: /opt/tns-workbench/autonomous-workbench/worktrees/feat/get-health-endpoint\n\nPasos:\n1. cd /opt/tns-workbench/autonomous-workbench\n2. git worktree add worktrees/feat/get-health-endpoint -b feat/get-health-endpoint dev\n3. Implementa el endpoint (ver specs)\n4. git add -p, git commit, git push -u origin feat/get-health-endpoint\n5. gh pr create --base dev --title 'feat: GET /health' --body '...' --reviewer andresTNS --reviewer Bufigol\n6. Devuelve PR número + URL\n\nSpecs:\n- Response: {\"status\":\"ok\",\"version\":\"<git shortsha>\",\"uptime\":<process.uptime()>}\n- Regla #5: NUNCA commit/push a dev/main/master directamente\n\nEntrega: número de PR creado + URL.",
-  "cwd": "/opt/tns-workbench/autonomous-workbench",
-  "timeoutSeconds": 1800,
-  "runTimeoutSeconds": 1800,
-  "cleanup": "delete",
-  "sandbox": "inherit"
-}
-```
+## Relación con otros agentes
 
-### Paso 2 — Esperar resultado con sessions_yield
+| Agente | Qué necesito de ellos | Qué les entrego |
+|--------|----------------------|-----------------|
+| **product-owner** | Mini-spec con acceptance criteria claros antes de spawnar | Señal de que el issue está listo para dispatch |
+| **agent-audit-trail** | — | Entry de spawn: agentId, workerSessionId, issue, timestamp |
+| **governance-wrapper** | Validación pasiva (siempre activa) — bloquea si la operación viola reglas | Contexto de la operación que voy a ejecutar |
+| **giraffe-guard** | Detección de loops — alerta si estoy spawneando en ciclo | Señal de spawn (para que detecte patrones anómalos) |
+| **tns-debugger-triage** | RCA cuando un worker falla QA — antes de decidir respawn | Resultado de QA (qaStatus, qaFailReason) del sprint-state.json |
+| **backend-dev / frontend-dev / qa-analyst** | — | Task prompt completo + worktree asignado + workerSessionId |
 
-```json
-{ "message": "backend-dev dispatched para feat/get-health-endpoint. Esperando resultado." }
-```
+---
 
-### Paso 3 — Cuando llegue el resultado: spawnar qa-analyst
+## Límites duros
 
-```json
-{
-  "agentId": "qa-analyst",
-  "runtime": "subagent",
-  "label": "qa-analyst-pr-<número>",
-  "task": "Revisa el PR #<número> en The-Next-Security/autonomous-workbench.\n\nCriterios de aceptación:\n- GET /health retorna 200 con body {\"status\":\"ok\",\"version\":\"<sha>\",\"uptime\":<number>}\n- No rompe el endpoint POST /webhooks/github existente\n- Código limpio, sin console.log de debug\n\nProceso:\n1. gh pr checkout <número>\n2. Revisar diff: gh pr diff <número>\n3. Si todo ok: gh pr review <número> --approve --body 'QA: LGTM.'\n4. Si hay issues: gh pr review <número> --request-changes --body 'Issues: <lista>'\n5. Devuelve: approved/changes-requested + detalle\n\nRepo local: /opt/tns-workbench/autonomous-workbench",
-  "cwd": "/opt/tns-workbench/autonomous-workbench",
-  "timeoutSeconds": 900,
-  "runTimeoutSeconds": 900,
-  "cleanup": "delete",
-  "sandbox": "inherit"
-}
-```
+- ❌ **Nunca** spawnar sin verificar idempotencia en sprint-state.json primero
+- ❌ **Nunca** spawnar si el issue no tiene acceptance criteria — activar product-owner primero
+- ❌ **Nunca** incluir en el task prompt instrucciones de commit/push a `dev`, `main` o `master`
+- ❌ **Nunca** spawnar dos workers sobre el mismo worktree simultáneamente
+- ❌ **Nunca** respawnear tras fallo de QA sin diagnóstico previo de tns-debugger-triage
+- ❌ **Nunca** paralelizar workers sin aprobación explícita de Felipe
+- ❌ **Nunca** llamar `sessions_list` — produce timeout invariablemente; usar sprint-state.json
+- ❌ **Nunca** omitir el registro de workerSessionId en sprint-state.json post-spawn
+- ❌ **Nunca** spawnar con agentId desconocido — solo `backend-dev`, `frontend-dev`, `qa-analyst`
 
-### Paso 4 — Reportar a Anibal (vía sessions_yield final)
+---
 
-Cuando QA termina, reporta a Anibal con:
-- Branch/PR creado
-- Estado de QA (aprobado / cambios pedidos)
-- Próximo paso (merge cuando Felipe lo autorice)
+## KPIs de efectividad
 
-## Reglas de dispatch (D-07 y D-013)
+| Indicador | Meta |
+|-----------|------|
+| Spawns idempotentes (sin duplicados) | 100% |
+| Task prompts con todas las secciones obligatorias | 100% |
+| Spawns con workerSessionId registrado en sprint-state.json | 100% |
+| Workers que requirieron clarificaciones post-spawn | < 10% |
+| Respawns sin diagnóstico previo de tns-debugger-triage | 0 |
+| Paralelismos no autorizados por Felipe | 0 |
 
-1. **UN worker por worktree**: nunca spawnes dos workers sobre el mismo worktree simultáneamente.
-2. **Verifica que el worktree esté libre** antes de spawnar: `git worktree list` en el repo.
-3. **Regla #5**: el task prompt a backend-dev/frontend-dev SIEMPRE debe incluir explícitamente que NO commit/push a dev/main/master.
-4. **D-013**: tú comunicas los resultados a Anibal, no directamente a Felipe via Telegram.
-5. **No re-spawnes si ya hay un worker activo** sobre la misma tarea. Verifica `subagents/runs.json`.
+---
 
-## ❌ Errores comunes a evitar
+## Referencias
 
-- ❌ Omitir `agentId` — spawnea otro Roy en vez del worker target.
-- ❌ Poner `agentId: "roy"` — mismo problema.
-- ❌ `exec` para inspeccionar el repo antes de spawnar — innecesario, dale el contexto al worker directamente.
-- ❌ Usar `coding-agent` skill — eso hace el trabajo tú mismo. Delega con `sessions_spawn`.
-- ❌ Esperar el resultado con exec/sleep — usa `sessions_yield`.
+- Procedimientos completos de idempotencia, prompt y spawn:
+  `{baseDir}/references/dispatch-procedures.md#idempotencia`
+- Template del task prompt con ejemplos reales:
+  `{baseDir}/references/dispatch-procedures.md#task-prompt`
+- Flujo de respawn tras fallo de QA:
+  `{baseDir}/references/dispatch-procedures.md#respawn`
+- Paralelismo de workers — cuándo y cómo coordinarlo:
+  `{baseDir}/references/dispatch-procedures.md#paralelismo`
+- Heurística de escalamiento (skill vs efímero vs worker):
+  `{baseDir}/references/dispatch-procedures.md#escalamiento`

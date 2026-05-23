@@ -2,8 +2,14 @@
 name: github-manager
 description: Gestiona todas las operaciones GitHub sobre repositorios delegados por Aníbal a Roy — crea ramas de trabajo, ejecuta commits atómicos por archivo, abre y comenta PRs con reviewers asignados, protege el historial git sagrado y previene commits con secretos. Usar cuando se necesite crear una rama de feature, abrir un PR a dev, agregar comentarios de progreso en PRs e issues, verificar estado de CI/CD, o ejecutar el workflow de Release (tag + GitHub Release + CHANGELOG). Triggers: "crea rama", "abre PR", "pr a dev", "comenta en PR", "comenta en issue", "CI status", "checks", "release", "tag", "git push", "publica release", "secreto en commit".
 version: 1.0.0
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-23
 user-invocable: true
-metadata: {"openclaw":{"emoji":"🐙","requires":{"bins":["git","gh"],"env":[]},"os":["linux","darwin"]}}
+allowed-tools: Bash
+tags: github git vcs pull-request release infrastructure security secrets
+compatibility: Requires authenticated gh CLI (gh auth status) and git installed. Linux and macOS only.
+metadata: {"openclaw":{"emoji":"🐙","riskLevel":"high","ownerAgent":"roy","requires":{"bins":["git","gh"],"env":[]},"os":["linux","darwin"],"outputs":["prUrl","branchName","ciStatus","releaseTag","comment"],"scrum":["grooming","planning","execution","pre-review","retro"],"worksWithSkills":["skill-threat-scanner","documentation-expert","governance-wrapper","agent-audit-trail"]}}
 ---
 
 # GitHub Manager

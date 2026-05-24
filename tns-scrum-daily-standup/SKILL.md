@@ -2,8 +2,14 @@
 name: tns-scrum-daily-standup
 description: 'TNS-specific Scrum daily stand-up facilitator. Invoked by Roy (Scrum Master) to consolidate status of the 9 specialists into a single compact report for Telegram. Each specialist reports: what was done yesterday, what is planned today, blockers. The skill aggregates, formats under the standard daily structure, and delivers through Roy''s channel. Triggers: ''daily'', ''daily stand-up'', ''standup'', ''daily report'', ''reporte diario''.'
 version: 1.0.0
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-24
 user-invocable: true
-metadata: {"openclaw":{"requires":{"bins":["jq"]},"os":["linux","darwin"]}}
+allowed-tools: Bash
+tags: scrum daily standup report telegram sprint consolidation
+compatibility: Requires jq. Requires access to sprint-state.json and product-backlog.json at /root/.openclaw/scrum/.
+metadata: {"openclaw":{"emoji":"📢","riskLevel":"low","ownerAgent":"roy","requires":{"bins":["jq"],"env":[]},"os":["linux","darwin"],"outputs":["dailyReport","telegramMessage"],"scrum":["daily"],"worksWithSkills":["scrum-master","agent-audit-trail"]}}
 ---
 
 # tns-scrum-daily-standup
@@ -136,3 +142,53 @@ secciones sin blockers/novedades relevantes.
 
 La skill incluye tests en `tests/` que validan el formato del
 reporte generado contra datos mock de sprint y especialistas.
+
+---
+
+## Flujo por evento Scrum
+
+Este skill participa únicamente en el **Daily Scrum**. Los demás eventos Scrum los conduce `scrum-master` directamente.
+
+### Daily Scrum
+
+Se invoca automáticamente por el cron de las 09:00 Chile o bajo demanda de Roy con el trigger "daily".
+
+**Plantilla de reporte por especialista:**
+
+```
+== <Nombre del Especialista> ==
+Ayer: <acciones completadas con impacto en Sprint Goal>
+Hoy: <tareas planificadas>
+Bloqueos: <impedimentos activos o "ninguno">
+```
+
+**Proceso de consolidación:**
+
+1. Leer `sprint-state.json` — verificar sprint activo; si no hay, responder "daily skipped" y abortar
+2. Para cada especialista: extraer ayer/hoy/bloqueos de `decisions-log.md` y sprint-state asignado
+3. Calcular sprint health: items done/total, PRs abiertos, CI status, impedimentos abiertos
+4. Condensar todo a ≤ 40 líneas
+5. Enviar a Telegram vía `infra/lib/telegram-notify.sh` del corredor
+6. Guardar en `~/.openclaw/scrum/daily-reports/daily-<fecha>.md` para histórico
+
+---
+
+## Límites duros
+
+- ❌ **Nunca** inventar actividad de especialistas sin registro verificable en decisions-log o sprint-state
+- ❌ **Nunca** exponer secrets, tokens o rutas internas en el reporte — omitir línea y dejar nota
+- ❌ **Nunca** enviar si no hay sprint activo — responder "daily skipped" a Roy
+- ❌ **Nunca** duplicar el envío del día — verificar presencia de `daily-<fecha>.md` antes de enviar
+- ❌ **Nunca** exceder 40 líneas en el mensaje final de Telegram
+
+---
+
+## KPIs de efectividad
+
+| Indicador | Meta |
+|-----------|------|
+| Dailies enviados en sprints activos (días hábiles) | 100% |
+| Reportes sin actividad fabricada (zero fabrication) | 100% |
+| Reportes con longitud dentro de 40 líneas | > 95% |
+| Tiempo de generación y envío del daily | < 60 segundos |
+| Histórico de daily reports guardado en archivo | 100% de los dailies enviados |

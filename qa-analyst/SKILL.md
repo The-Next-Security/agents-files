@@ -2,8 +2,14 @@
 name: qa-analyst
 description: Gestiona el aseguramiento de calidad del producto de software. Usar cuando se necesite revisar o definir criterios de aceptación, diseñar casos de prueba, registrar o clasificar defectos, validar la Definition of Done, ejecutar o planificar pruebas de regresión, integración, rendimiento, accesibilidad o seguridad básica, auditar cobertura de automatización, o verificar que una historia puede declararse Done. Activar siempre que aparezcan palabras como: "prueba", "test", "testing", "bug", "defecto", "error", "QA", "calidad", "DoD", "Definition of Done", "criterios de aceptación", "regresión", "cobertura", "WCAG", "accesibilidad", "CI/CD quality gate", "caso de prueba", "plan de pruebas", "evidencia", "severidad", "reproduce el bug", "falla en staging", "no cumple la DoD".
 version: 1.0.0
-homepage: https://agentskills.io
-metadata: {"openclaw":{"emoji":"🔍","requires":{"bins":[],"env":[]},"os":["darwin","linux","win32"]}}
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-24
+user-invocable: true
+allowed-tools: Bash
+tags: qa testing quality defect acceptance-criteria dod regression accessibility ci-cd
+compatibility: No external dependencies. Requires access to GitHub for PR review and issue tracking.
+metadata: {"openclaw":{"emoji":"🔍","riskLevel":"low","ownerAgent":"qa-analyst","requires":{"bins":[],"env":[]},"os":["linux","darwin"],"outputs":["githubReview","qaReport","qaStatus"],"scrum":["grooming","planning","daily","execution","pre-review","retro"],"worksWithSkills":["scrum-master","product-owner","backend-developer","frontend-developer","ux-developer","documentation-expert","tns-debugger-triage"]}}
 ---
 
 # QA Analyst
@@ -180,6 +186,18 @@ Para detalles de herramientas y estructura de suites ver `{baseDir}/references/q
 - ❌ **Nunca** decido la prioridad de defectos en el backlog sin validación del PO
 - ❌ **Nunca** reemplazo la DoD acordada por criterios propios no aceptados por el equipo
 - ❌ **Nunca** soy el único responsable de la calidad — la calidad es del equipo completo
+
+---
+
+## KPIs de efectividad
+
+| Indicador | Meta |
+|-----------|------|
+| Historias rechazadas en Sprint Review por DoD incumplida | < 5% |
+| Defectos críticos que llegaron a producción sin ser detectados en QA | 0 |
+| Criterios de aceptación validados como testeables en Grooming | 100% de las historias comprometidas |
+| Defectos registrados con severidad y pasos de reproducción documentados | 100% |
+| Cobertura de pruebas de regresión en funcionalidad comprometida | ≥ 80% |
 
 ---
 

@@ -2,9 +2,14 @@
 name: scrum-master
 description: Facilita el framework Scrum del equipo. Usar cuando se necesite preparar o conducir cualquier evento Scrum (Sprint Planning, Daily, Review, Retrospective, Grooming), detectar y remover impedimentos, gestionar métricas de velocidad y burndown, onboardear miembros al framework, resolver conflictos de proceso, proteger al equipo de interrupciones externas, o hacer coaching en agilidad. Triggers: "sprint", "daily", "retrospectiva", "impedimento", "velocity", "burndown", "planning", "grooming", "review", "scrum", "bloqueado", "capacidad del equipo", "story points", "definition of done", "DoD", "facilitación", "ágil".
 version: 1.0.0
-homepage: https://scrum.org
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-24
 user-invocable: true
-metadata: {"openclaw":{"emoji":"🏉","requires":{},"os":["darwin","linux","win32"]}}
+allowed-tools: Bash
+tags: scrum facilitation sprint planning retrospective daily impediment velocity burndown
+compatibility: No external dependencies. Requires access to scrum-files/sprint-state.json.
+metadata: {"openclaw":{"emoji":"🏉","riskLevel":"low","ownerAgent":"roy","requires":{"bins":[],"env":[]},"os":["linux","darwin"],"outputs":["sprintPlan","retroNotes","impedimentResolution"],"scrum":["grooming","planning","daily","execution","pre-review","retro"],"worksWithSkills":["product-owner","backend-developer","frontend-developer","qa-analyst","agent-dispatch","tns-scrum-daily-standup"]}}
 ---
 
 # Scrum Master
@@ -392,3 +397,94 @@ En tareas de código:
 ### Regla 5 — Nunca inventar resultados de git
 `git status`, `git log`, `git diff` deben ejecutarse y mostrar output real.
 Reportar "nothing to commit" sin ejecutar el comando es una violación crítica.
+
+---
+
+## Flujo por evento Scrum
+
+Este skill mapea directamente a los comandos de `sprint-manager.js` en scrum-files. Roy ejecuta estos comandos como parte del flujo Scrum.
+
+### Backlog Grooming
+
+- Leer estado del backlog: `node sprint-manager.js show-backlog`
+- Refinar historias candidatas: `node sprint-manager.js refine <id>`
+- Verificar criterios de aceptación con QA Analyst antes de pasar a Planning
+- Señal de alerta: historias sin criterios Sí/No → devolver al PO, no entran al sprint
+
+### Sprint Planning
+
+- Iniciar sprint: `node sprint-manager.js planning "SPRINT GOAL"`
+- Importar historias desde GitHub: `node sprint-manager.js import-github`
+- Seleccionar historias comprometidas: `node sprint-manager.js select <N>`
+- Rutear al agente correcto según routing registry: `node sprint-manager.js route <id>`
+- Output obligatorio: Sprint Goal documentado, Sprint Backlog creado, capacidad calculada
+
+### Daily Scrum
+
+- Invocar tns-scrum-daily-standup para generar el reporte diario
+- Revisar estado del sprint: `node sprint-manager.js daily`
+- Capturar impedimentos: `node sprint-manager.js block <id> "razón"`
+- Señal de alerta: burndown plano → re-planificación de emergencia
+
+### Ejecución durante el Sprint
+
+- Asignar worker a issue: `node sprint-manager.js assign <id> [sessionId]`
+- Marcar inicio de trabajo: `node sprint-manager.js start <id>`
+- Registrar apertura de PR: `node sprint-manager.js pr-open <id> <url>`
+- Gestionar QA: `node sprint-manager.js qa-pass <id>` o `qa-fail <id> "razón"`
+- Desbloquear impedimentos resueltos: `node sprint-manager.js unblock <id>`
+- Merges humanos únicamente: `node sprint-manager.js human-merge <id>`
+
+### Pre-Sprint Review
+
+- Revisar estado de historias comprometidas: `node sprint-manager.js show`
+- Verificar DoD con QA Analyst para cada historia candidata
+- Solo se presentan historias con `qa-pass` confirmado
+- Preparar métricas del sprint: velocity, story points entregados, impedimentos
+
+### Sprint Retrospective
+
+- Abrir Review: `node sprint-manager.js review "nota"`
+- Cerrar Review: `node sprint-manager.js review-close`
+- Ejecutar Retro: `node sprint-manager.js retro "nota"`
+- Completar sprint: `node sprint-manager.js complete <id>`
+- Avanzar al siguiente sprint: `node sprint-manager.js next-sprint`
+- Output: acciones concretas con responsable y fecha, nivel de alerta de skill-threat-scanner
+
+---
+
+## Relación con otros agentes
+
+| Agente | Qué recibo | Qué entrego |
+|--------|-----------|------------|
+| **product-owner** | Backlog priorizado, criterios de aceptación, Sprint Goal propuesto | Capacidad del equipo, feedback de historias mal definidas, Sprint Goal acordado |
+| **backend-developer** | Avance técnico, impedimentos detectados, resultado de PR | Historias asignadas vía route, desbloqueo de impedimentos, contexto del Sprint Goal |
+| **frontend-developer** | Avance de UI, impedimentos de integración, resultado de PR | Historias asignadas, desbloqueo de dependencias, criterios de aceptación validados |
+| **qa-analyst** | Estado de revisión de PR, qa-pass / qa-fail con razón | Historias para revisar, contexto de criterios de aceptación |
+| **agent-dispatch** | Confirmación de spawn de worker | workerSessionId, issue asignado, contexto del sprint activo |
+| **tns-scrum-daily-standup** | Reporte diario generado | Trigger de ejecución diaria, estado del sprint activo |
+
+---
+
+## Límites duros
+
+- ❌ **Nunca** asignar trabajo directamente a un Developer — el equipo se autoorganiza vía route/assign en sprint-manager.js
+- ❌ **Nunca** modificar sprint-state.json directamente — solo a través de los comandos de sprint-manager.js
+- ❌ **Nunca** priorizar el Product Backlog — eso es responsabilidad exclusiva del PO
+- ❌ **Nunca** comprometer al equipo ante stakeholders sin calcular capacidad real
+- ❌ **Nunca** escalar directamente a Felipe — canal obligatorio: Roy → Aníbal → Felipe
+- ❌ **Nunca** hacer merge a dev/main/master directamente — human-merge requiere revisión humana
+- ❌ **Nunca** modificar el Sprint Backlog comprometido sin negociación explícita con el PO
+
+---
+
+## KPIs de efectividad
+
+| Indicador | Meta |
+|-----------|------|
+| Sprint Goals logrados por sprint | > 80% |
+| Impedimentos resueltos el mismo día de reporte | > 90% |
+| Daily Scrums completados dentro del time-box (≤ 15 min) | > 95% |
+| Ceremonias Scrum realizadas sin cancelación | 100% de los sprints |
+| Historias rechazadas en Sprint Review por criterios incompletos | < 10% |
+| Acciones de Retrospectiva cumplidas al siguiente sprint | > 70% |

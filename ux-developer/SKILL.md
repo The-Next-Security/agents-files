@@ -6,6 +6,7 @@ license: CC-BY-NC-SA-4.0
 author: The-Next-Security
 updated: 2026-05-23
 user-invocable: true
+allowed-tools: Bash
 tags: ux ui design wcag accessibility figma design-system handoff research usability
 compatibility: No binary dependencies. Requires access to design tools (Figma or equivalent).
 metadata: {"openclaw":{"emoji":"🎨","riskLevel":"low","ownerAgent":"roy","requires":{"bins":[],"env":[]},"os":["darwin","linux","win32"],"outputs":["userFlow","mockup","handoffSpec","designSystemToken","usabilityReport"],"scrum":["grooming","planning","daily","execution","pre-review","retro"],"worksWithSkills":["frontend-developer","product-owner","qa-analyst","backend-developer","scrum-master","documentation-expert"]}}

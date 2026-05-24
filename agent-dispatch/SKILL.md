@@ -6,6 +6,7 @@ license: CC-BY-NC-SA-4.0
 author: The-Next-Security
 updated: 2026-05-23
 user-invocable: true
+allowed-tools: Bash
 tags: dispatch spawn worker delegation orchestration idempotency scrum prompt-engineering
 compatibility: Requires sprint-state.json readable via exec+cat. Requires /subagents spawn available in Roy tool list.
 metadata: {"openclaw":{"emoji":"🚀","riskLevel":"high","ownerAgent":"roy","requires":{"bins":[],"env":[]},"os":["linux","darwin"],"outputs":["spawnPrompt","auditEntry","workerSessionId"],"scrum":["planning","execution","pre-review"],"worksWithSkills":["agent-audit-trail","governance-wrapper","giraffe-guard","tns-debugger-triage","product-owner"]}}

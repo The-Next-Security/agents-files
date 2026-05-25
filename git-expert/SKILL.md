@@ -2,9 +2,14 @@
 name: git-expert
 description: Arquitecto del flujo de trabajo técnico de Git y CI/CD del equipo. Usar cuando se necesite definir o ajustar la branching strategy, configurar o revisar el pipeline CI/CD, establecer convenciones de commits, gestionar el proceso de PR y revisiones, configurar branch protection rules, auditar secretos en el repositorio, crear o gestionar releases con semver, limpiar ramas obsoletas, o resolver conflictos y problemas complejos de Git. Triggers: "branching", "estrategia de ramas", "convención de commits", "conventional commits", "pipeline", "CI/CD", "branch protection", "semver", "release", "tag", "conflict", "rebase", "hotfix flow", "commitlint", "husky", "changelog", "git flow", "trunk-based", "secreto en repo", "merge strategy".
 version: 1.0.0
-homepage: https://github.com/openclaw/openclaw
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-24
 user-invocable: true
-metadata: {"openclaw":{"emoji":"🌿","requires":{"bins":["git","gh"],"anyBins":["gh","git"]},"os":["darwin","linux"]}}
+allowed-tools: Bash
+tags: git branching ci-cd pipeline pull-request semver secrets conventional-commits
+compatibility: Requires git >= 2.39 and gh CLI authenticated. Compatible with any GitHub-hosted repository.
+metadata: {"openclaw":{"emoji":"🌿","riskLevel":"high","ownerAgent":"backend-dev","requires":{"bins":["git","gh"],"env":[]},"os":["linux","darwin"],"outputs":["cleanBranch","resolvedConflict"],"scrum":["execution","pre-review"],"worksWithSkills":["scrum-master","backend-developer","frontend-developer","qa-analyst","github-manager","documentation-expert","agent-audit-trail"]}}
 ---
 
 # Git Expert
@@ -268,14 +273,37 @@ git rebase --abort      # para cancelar
 
 ---
 
-## Reglas de operación (límites duros)
+## Flujo por evento Scrum
 
-1. **Nunca** force push a `main` o `master` sin aprobación explícita del equipo.
-2. **Nunca** mergear un PR con checks de CI en rojo.
-3. **Nunca** desactivar checks de CI como solución rápida.
-4. **Nunca** almacenar secretos en el repositorio (ni en ramas privadas).
-5. **Nunca** cambiar branching strategy sin acordarlo con el equipo primero.
-6. **Nunca** forzar merge que falla checks sin aprobación explícita.
+### Ejecución durante el Sprint
+
+- Soporte a developers: resolver conflictos de merge, limpiar historiales de feature branches
+- Mantener pipeline CI saludable: builds rotos = impedimento del equipo (resolución < 2h)
+- Invocar `node sprint-manager.js pr-open <id> <url>` cuando el PR queda listo para QA
+- Registrar operaciones de riesgo alto en agent-audit-trail antes de ejecutar
+
+### Pre-Sprint Review
+
+- Verificar que todos los PRs comprometidos tienen CI verde antes del Review
+- Auditar secretos en repositorio si hay PR con cambios de configuración: `gitleaks detect`
+- Limpiar ramas stale del sprint anterior tras el merge
+
+Los demás eventos Scrum (Grooming, Planning, Daily, Retro) no requieren participación activa de este skill.
+
+---
+
+## Límites duros
+
+⚠️ **Este skill tiene riskLevel=high. Toda operación que modifique el historial de ramas compartidas requiere registro en agent-audit-trail.**
+
+- ❌ **Nunca** hacer force push a `dev`, `main` o `master` — ni siquiera como "solución rápida" (D-07)
+- ❌ **Nunca** hacer push directo a `dev`, `main` o `master` sin PR revisado
+- ❌ **Nunca** hacer rebase en una rama compartida sin consenso explícito del equipo
+- ❌ **Nunca** desactivar checks de CI como solución a un build roto
+- ❌ **Nunca** mergear un PR con checks de CI en rojo
+- ❌ **Nunca** almacenar secretos en el repositorio (ni en ramas privadas ni en commits)
+- ❌ **Nunca** cambiar la branching strategy sin acordarlo con el equipo en Retrospectiva
+- ❌ **Nunca** ejecutar `git filter-repo` o rewrite de historial sin registrar la operación y obtener aprobación del equipo
 
 ---
 
@@ -291,13 +319,13 @@ git rebase --abort      # para cancelar
 
 ---
 
-## Relación con otros agentes del equipo
+## Relación con otros agentes
 
-| Agente | Colaboración |
-|---|---|
-| `github-manager` | Delega operaciones de PRs, issues y releases; comparte scripts |
-| `backend-developer` | Pipeline de build/deploy del servidor, secretos de BD |
-| `frontend-developer` | Pipeline de build del cliente, variables de entorno FE |
-| `qa-analyst` | Integración de suites de prueba en CI, umbrales de cobertura |
-| `product-owner` | Proceso de release: qué commits incluye cada versión |
-| `documentation-expert` | CONTRIBUTING.md, setup de entorno local |
+| Agente | Qué recibo | Qué entrego |
+|--------|-----------|------------|
+| **github-manager** | Solicitudes de operaciones de PRs, issues y releases | Ramas limpias, historial de commits convencional, scripts de CI |
+| **backend-developer** | Solicitudes de resolución de conflictos, gestión de pipeline de backend | Ramas limpias, pipeline funcional, guidance de commits |
+| **frontend-developer** | Solicitudes de resolución de conflictos, variables de entorno FE | Ramas limpias, pipeline de build/bundle funcional |
+| **qa-analyst** | Umbrales de cobertura a integrar en CI; solicitudes de calidad gate | Suite de tests integrada en pipeline; branch protection configurada |
+| **documentation-expert** | — | CONTRIBUTING.md, setup de entorno local, convenciones de commits |
+| **agent-audit-trail** | — | Registro de toda operación de riesgo alto (rewrite de historial, force push autorizado) |

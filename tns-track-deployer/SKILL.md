@@ -1,9 +1,15 @@
 ---
 name: tns-track-deployer
-description: 'TNS-specific scaffolder for new TNS Track verticals. Given a client brief in JSON or markdown, creates a new private GitHub repository from the TNS Track template, scaffolds the project, opens an initial PR against dev, and reports with a link to the PR. This skill does NOT deploy to production. It only scaffolds and opens the repo + PR. Production deployment is a separate, human-approved step. Triggers: ''despliega vertical'', ''nueva vertical TNS Track'', ''crea repo tns-track'', ''scaffold client''.'
+description: 'TNS-specific scaffolder for new TNS Track verticals. Given a client brief in JSON or markdown, creates a new private GitHub repository from the TNS Track template, scaffolds the project, opens an initial PR against dev, and reports with a link to the PR. This skill does NOT deploy to production. It only scaffolds and opens the repo + PR. Production deployment is a separate, human-approved step. RESTRICTED: requires explicit written authorization from Felipe with specific client before any execution. Triggers: ''despliega vertical'', ''nueva vertical TNS Track'', ''crea repo tns-track'', ''scaffold client''.'
 version: 1.0.0
-user-invocable: true
-metadata: {"openclaw":{"requires":{"bins":["git","gh","jq","node"]},"os":["linux","darwin"]}}
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-24
+user-invocable: false
+allowed-tools: Bash
+tags: scaffold deployment tns-track vertical client github restricted
+compatibility: Requires git, gh, jq, node. Status: disabled-intentional. Execution requires explicit written authorization from Felipe with specific client name.
+metadata: {"openclaw":{"emoji":"🚀","riskLevel":"high","ownerAgent":null,"requires":{"bins":["git","gh","jq","node"],"env":[]},"os":["linux","darwin"],"outputs":[],"scrum":[],"worksWithSkills":[]}}
 ---
 
 # tns-track-deployer
@@ -125,3 +131,18 @@ La skill incluye tests en `tests/` que validan:
 - Que la estructura generada sigue las convenciones de TNS Track.
 
 Los tests usan briefs sintéticos, no hacen llamadas reales a GitHub.
+
+---
+
+## Límites duros
+
+⚠️ **Esta skill está DESHABILITADA por defecto (status=disabled-intentional en el routing registry). No se puede invocar desde workers autónomos.**
+
+- ❌ **Nunca** ejecutar sin autorización escrita de Felipe que especifique el nombre exacto del cliente
+- ❌ **Nunca** invocar desde workers autónomos o por Roy sin instrucción explícita de Felipe
+- ❌ **Nunca** realizar deploy a producción — alcance estricto: scaffold + PR inicial únicamente
+- ❌ **Nunca** crear repos con `--public` — siempre privados
+- ❌ **Nunca** commitear secretos, tokens, credenciales o valores reales en el scaffold
+- ❌ **Nunca** generar webhooks o integraciones con servicios externos sin autorización explícita del brief o vía Aníbal
+- ❌ **Nunca** ejecutar sin registrar la operación completa en agent-audit-trail (cliente, brief hash, repo creado, PR URL)
+- ❌ **Nunca** tocar repos existentes — si el repo ya existe, abortar con explicación

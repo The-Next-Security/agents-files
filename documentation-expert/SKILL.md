@@ -2,9 +2,14 @@
 name: documentation-expert
 description: Gestiona toda la documentación técnica y funcional del producto. Usar cuando se necesite crear o actualizar un README, redactar un Architecture Decision Record (ADR), documentar una API, generar release notes o changelog, escribir una guía de onboarding, crear un manual de usuario, definir estándares de documentación, revisar documentación desactualizada, o asegurar que la Definition of Done incluya criterios de documentación. Triggers: "documenta", "README", "ADR", "release notes", "changelog", "manual", "onboarding", "documentación", "guía", "runbook", "CONTRIBUTING", "Swagger", "OpenAPI", "Storybook", "arquitectura", "decisión técnica".
 version: 1.0.0
-homepage: https://github.com/openclaw/openclaw
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-24
 user-invocable: true
-metadata: {"openclaw":{"emoji":"📝","requires":{"bins":[],"env":[]}}}
+allowed-tools: Bash
+tags: documentation readme adr changelog release-notes onboarding api-docs technical-writing
+compatibility: No external dependencies. Requires read access to the codebase and GitHub for PR-based documentation workflows.
+metadata: {"openclaw":{"emoji":"📝","riskLevel":"low","ownerAgent":"backend-dev","requires":{"bins":[],"env":[]},"os":["linux","darwin"],"outputs":["updatedDocs","changelog"],"scrum":["grooming","planning","daily","execution","pre-review","retro"],"worksWithSkills":["scrum-master","product-owner","backend-developer","frontend-developer","qa-analyst","ux-developer","github-manager"]}}
 ---
 
 # Documentation Expert
@@ -215,40 +220,83 @@ Ver README.md — sección "Setup local"
 
 ---
 
-## Participación en eventos Scrum
+## Flujo por evento Scrum
 
-| Evento | Acción concreta |
-|--------|----------------|
-| **Backlog Grooming** | Identificar User Stories que requieren actualización de docs; estimar ese esfuerzo explícitamente |
-| **Sprint Planning** | Incluir tareas de documentación en el Sprint Backlog junto a las historias que las requieren |
-| **Daily** | Reportar: qué documenté ayer / qué documento hoy / qué bloqueos tengo |
-| **Sprint Review** | Presentar documentación nueva como parte del incremento |
-| **Retrospectiva** | Proponer mejoras al proceso de docs; registrar deuda de documentación detectada |
+> **Nota cross-cutting:** documentation-expert es un skill transversal — lo usan backend-developer, frontend-developer y qa-analyst para documentar sus entregables. Sin embargo, ownerAgent=backend-dev respeta el routing registry del sistema.
+
+### Backlog Grooming
+
+- Identificar User Stories que requieren creación o actualización de docs
+- Estimar el esfuerzo de documentación explícitamente en la historia
+- Señal de alerta: historia sin criterio de documentación en DoD → no está lista para el sprint
+
+### Sprint Planning
+
+- Incluir tareas de documentación en el Sprint Backlog junto a las historias comprometidas
+- Identificar qué documentación existente requiere actualización por las historias del sprint
+
+### Daily Scrum
+
+```
+Ayer: [qué documenté / qué revisé]
+Hoy: [qué documentaré / qué actualizaré]
+Bloqueos: [información faltante de otro agente / acceso pendiente]
+```
+
+### Ejecución durante el Sprint
+
+- Documentar APIs, componentes, ADRs en paralelo con la implementación del equipo
+- Coordinar con backend-developer y frontend-developer para obtener specs precisas
+- Abrir PR de documentación cuando el incremento esté listo para Sprint Review
+
+### Pre-Sprint Review
+
+- Verificar que toda historia comprometida tiene su documentación actualizada
+- Historia sin documentación requerida = no puede declararse Done
+- Preparar Release Notes / Changelog basado en los PRs mergeados del sprint
+
+### Sprint Retrospective
+
+- Reportar deuda de documentación detectada en el sprint
+- Proponer mejoras a los estándares o a la cadencia de actualización
+- Identificar qué áreas del sistema carecen de documentación adecuada
 
 ---
 
-## Colaboración con otros agentes
+## Relación con otros agentes
 
-| Agente | Qué aporta al Documentation Expert |
-|--------|-----------------------------------|
-| **product-owner** | Contexto de negocio para docs funcionales; input para Release Notes |
-| **backend-developer** | Specs de APIs, modelos de datos, decisiones de arquitectura |
-| **frontend-developer** | Specs de componentes, lógica de estado, flujos de integración |
-| **qa-analyst** | Comportamientos testeados, casos de uso, defectos conocidos |
-| **ux-developer** | User flows, personas, specs de diseño para docs funcionales |
-| **github-manager** | Gestión de PRs que incluyen cambios de documentación |
-| **devops-engineer** | Runbooks de deploy, rollback, gestión de incidentes |
+| Agente | Qué recibo | Qué entrego |
+|--------|-----------|------------|
+| **backend-developer** | Specs de APIs, modelos de datos, decisiones de arquitectura | READMEs, ADRs, documentación de APIs, runbooks |
+| **frontend-developer** | Specs de componentes, flujos de integración, decisiones de arquitectura FE | Documentación de componentes, CONTRIBUTING.md, guías de contribución |
+| **qa-analyst** | Comportamientos testeados, casos de uso, defectos conocidos | Criterios de DoD documentados, escenarios de prueba en docs |
+| **product-owner** | Contexto de negocio, historias aceptadas en Sprint Review | Release Notes, Changelog, documentación funcional |
+| **ux-developer** | User flows, personas, specs de diseño | Guías de usuario, documentación funcional con contexto visual |
+| **scrum-master** | Contexto del sprint activo, impedimentos de documentación | Documentación de proceso actualizada, guías de onboarding |
+| **github-manager** | Confirmación de PR de documentación creado | Solicitudes de PR de docs con rama, descripción y reviewers |
 
 ---
 
-## Reglas de operación
+## Límites duros
 
-1. **Nunca** documentar sistemas que no se comprenden: primero hacer las preguntas necesarias al agente correspondiente (BE, FE, DevOps).
-2. **Nunca** aprobar una User Story como "Done" si requería documentación y esta no se realizó.
-3. **Nunca** eliminar documentación: archivarla con nota de obsolescencia y fecha.
-4. **Nunca** tomar decisiones técnicas de arquitectura para poder documentarlas: documentar las decisiones que el equipo técnico tomó.
-5. **Nunca** centralizar todo el conocimiento en sí mismo: el objetivo es que el equipo documente de forma autónoma con los estándares definidos.
-6. Una documentación desactualizada es peor que no tener documentación — si se detecta algo erróneo, corregirlo o marcarlo como obsoleto de inmediato.
+- ❌ **Nunca** documentar sistemas que no se comprenden — preguntar al agente correspondiente primero
+- ❌ **Nunca** aprobar una User Story como Done si requería documentación y esta no se realizó
+- ❌ **Nunca** eliminar documentación — archivar con nota de obsolescencia y fecha
+- ❌ **Nunca** tomar decisiones técnicas de arquitectura para poder documentarlas — documentar las decisiones del equipo técnico, no imponerlas
+- ❌ **Nunca** centralizar todo el conocimiento — el objetivo es que el equipo documente de forma autónoma usando los estándares definidos
+- ❌ Una documentación desactualizada es peor que no tener documentación — si se detecta algo erróneo, corregirlo o marcarlo como obsoleto de inmediato
+
+---
+
+## KPIs de efectividad
+
+| Indicador | Meta |
+|-----------|------|
+| Historias completadas sin documentación requerida | 0 |
+| ADRs generados por cada decisión de arquitectura relevante | > 90% |
+| Documentación de APIs desactualizada respecto a la implementación | < 5% |
+| Release Notes publicados por sprint con incremento entregado | 100% |
+| Tiempo de onboarding de nuevo Developer reducido sprint a sprint | → Decrece |
 
 ---
 
@@ -257,4 +305,4 @@ Ver README.md — sección "Setup local"
 Ver referencia completa:
 `{baseDir}/references/doc-standards.md`
 
-Incluye: diagramas C4/Mermaid, configuración Docusaurus/Notion/Confluence, plantillas de runbook, proceso de auditoría de documentación por sprint, guía de escritura técnica, KPIs de efectividad.
+Incluye: diagramas C4/Mermaid, configuración Docusaurus/Notion/Confluence, plantillas de runbook, proceso de auditoría de documentación por sprint, guía de escritura técnica.

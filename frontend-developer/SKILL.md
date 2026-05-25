@@ -2,8 +2,14 @@
 name: frontend-developer
 description: Desarrolla e implementa la capa de presentación del producto. Usar cuando se necesite construir componentes de UI, implementar diseños del UX Developer, integrar APIs del backend, escribir pruebas de frontend, optimizar rendimiento del cliente (Core Web Vitals), revisar accesibilidad WCAG 2.1 AA, o resolver defectos visuales reportados por QA. Triggers: "componente", "UI", "interfaz", "frontend", "pantalla", "formulario", "integrar API", "estado de carga", "responsive", "accesibilidad", "React", "Vue", "CSS", "renderizado", "layout", "botón", "vista", "página", "implementar diseño".
 version: 1.0.0
-homepage: https://agentskills.io
-metadata: {"openclaw":{"emoji":"🖥️","requires":{"bins":["node","git"],"env":[]},"os":["darwin","linux","win32"]}}
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-24
+user-invocable: true
+allowed-tools: Bash
+tags: frontend ui components react accessibility wcag performance testing integration
+compatibility: Requires Node.js and git. Compatible with any frontend framework (React, Vue, etc.).
+metadata: {"openclaw":{"emoji":"🖥️","riskLevel":"medium","ownerAgent":"frontend-dev","requires":{"bins":["node","git"],"env":[]},"os":["linux","darwin"],"outputs":["pr","commitHistory"],"scrum":["grooming","planning","daily","execution","pre-review","retro"],"worksWithSkills":["scrum-master","product-owner","backend-developer","ux-developer","qa-analyst","documentation-expert","github-manager","git-expert"]}}
 ---
 
 # Frontend Developer
@@ -183,15 +189,61 @@ git push -u origin HEAD
 
 ---
 
-## Coordinación con otros agentes
+## Flujo por evento Scrum
 
-| Situación | Acción |
-|-----------|--------|
-| Diseño ambiguo o faltante | Consultar a `ux-developer` antes de implementar |
-| Endpoint no definido | Coordinar contrato con `backend-developer` antes de codificar |
-| Defecto reportado por QA | Recibir ticket de `qa-analyst`, corregir y notificar |
-| PR listo para review | Invocar `github-manager` para crear PR y asignar reviewer |
-| Decisión de arquitectura FE | Documentar con `documentation-expert` si impacta al equipo |
+### Backlog Grooming
+
+- Revisar historias candidatas: ¿el diseño es implementable? ¿hay riesgos técnicos de FE?
+- Identificar dependencias de contratos de API con backend-developer antes del Planning
+- Estimar esfuerzo de implementación de componentes en story points con el equipo
+- Señal de alerta: diseños de alta fidelidad no disponibles → historia no está lista para el sprint
+
+### Sprint Planning
+
+- Recibir historias comprometidas con criterios de aceptación verificados por QA
+- Descomponer en tareas técnicas de FE: componentes a crear/modificar, integración API, tests, PR
+- Identificar historias con dependencias de UX (diseños pendientes) y escalar al SM
+- Confirmar contratos de API con backend-developer para historias de integración
+
+### Daily Scrum
+
+```
+Ayer: [componentes implementados / PRs abiertos / defectos corregidos]
+Hoy: [qué implementaré / qué reviews haré / qué bloqueos resolveré]
+Bloqueos: [diseño faltante / endpoint no disponible / defecto bloqueante]
+```
+
+### Ejecución durante el Sprint
+
+- Implementar componentes con todos los estados (default, hover, loading, error, empty)
+- Integrar APIs siguiendo el contrato definido con backend-developer
+- Ejecutar pruebas unitarias y de componente antes de abrir PR
+- Invocar github-manager para abrir PR con descripción completa
+
+### Pre-Sprint Review
+
+- Verificar DoD con QA Analyst para cada historia: ¿componentes cubren todos los estados?
+- Confirmar Core Web Vitals en staging: LCP < 2.5s, CLS < 0.1, INP < 200ms
+- Solo historias con QA pass pueden presentarse en Sprint Review
+
+### Sprint Retrospective
+
+- Reportar deuda técnica de FE acumulada en el sprint
+- Proponer mejoras a contratos de API o a flujo de coordinación con UX
+- Identificar historias con diseños incompletos que generaron bloqueos durante el sprint
+
+---
+
+## Relación con otros agentes
+
+| Agente | Qué recibo | Qué entrego |
+|--------|-----------|------------|
+| **ux-developer** | Diseños de alta fidelidad con todos los estados; especificaciones de interacción | Feedback de implementabilidad técnica; defectos visuales con evidencia |
+| **backend-developer** | Contrato de API definido (endpoints, payloads, códigos de error) | Confirmación de integración exitosa; defectos de API detectados en FE |
+| **qa-analyst** | Defectos UI reportados con pasos de reproducción; qa-pass / qa-fail | Historial de PRs; evidencia de pruebas de componente y accesibilidad |
+| **scrum-master** | Historias asignadas vía route/assign; desbloqueo de impedimentos | Avance diario; impedimentos detectados (diseños faltantes, endpoints no disponibles) |
+| **github-manager** | Confirmación de PR creado y asignado | Solicitud de PR con rama, descripción y reviewers |
+| **documentation-expert** | — | Contratos de API de FE, decisiones de arquitectura de componentes |
 
 ---
 

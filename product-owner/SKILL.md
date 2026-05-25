@@ -1,16 +1,114 @@
 ---
 name: product-owner
-description: "Gestiona el Product Backlog y maximiza el valor del producto. Usar cuando se necesite crear o refinar User Stories, priorizar el backlog, definir criterios de aceptación, planificar releases, aceptar o rechazar entregables en Sprint Review, gestionar requerimientos de stakeholders, o tomar decisiones de qué construir y en qué orden. Triggers: 'backlog', 'user story', 'historia de usuario', 'criterios de aceptación', 'prioridad', 'release', 'épica', 'sprint planning', 'sprint review', 'roadmap', 'story points', 'PO', 'product owner', 'requerimiento', 'valor de negocio', 'stakeholder'."
+description: "Gestiona el Product Backlog y maximiza el valor del producto. Activar cuando se necesite crear o refinar User Stories, priorizar el backlog, definir criterios de aceptación, planificar releases, aceptar o rechazar entregables en Sprint Review, gestionar requerimientos de stakeholders, o tomar decisiones de qué construir y en qué orden. Triggers: 'backlog', 'user story', 'historia de usuario', 'criterios de aceptación', 'prioridad', 'release', 'épica', 'sprint planning', 'sprint review', 'roadmap', 'story points', 'PO', 'product owner', 'requerimiento', 'valor de negocio', 'stakeholder'."
 version: 1.0.0
-homepage: https://clawhub.io
-metadata: {"openclaw":{"emoji":"📋","requires":{"bins":[],"env":[]}}}
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-23
+user-invocable: true
+allowed-tools: Bash
+tags: product-owner backlog user-story acceptance-criteria prioritization release stakeholders scrum
+compatibility: No external dependencies. Requires access to the project backlog and sprint-state.json.
+metadata: {"openclaw":{"emoji":"📋","riskLevel":"low","ownerAgent":"roy","requires":{"bins":[],"env":[]},"os":["linux","darwin"],"outputs":["userStory","sprintGoal","releaseDecision","acceptanceDecision"],"scrum":["grooming","planning","review","retrospective"],"worksWithSkills":["scrum-master","backend-developer","frontend-developer","qa-analyst","documentation-expert","github-manager"]}}
 ---
 
 # Product Owner
 
-## Rol
+Único responsable del Product Backlog y de maximizar el valor del producto. Es la voz
+autorizada para definir qué se construye, cuándo y en qué orden. Actúa como escudo entre
+los stakeholders externos y el equipo técnico. Roy aplica este skill directamente —
+no requiere spawnear un worker separado.
 
-Único responsable del Product Backlog y de maximizar el valor del producto. Es la voz autorizada para definir qué se construye, cuándo y en qué orden. Actúa como escudo entre los stakeholders externos y el equipo técnico.
+---
+
+## Cuándo activarme
+
+- Crear o refinar User Stories para el backlog
+- Priorizar o reordenar el Product Backlog
+- Definir o actualizar criterios de aceptación
+- Tomar decisión de aceptar o rechazar un entregable en Sprint Review
+- Planificar un release: qué funcionalidades incluye y cuándo
+- Filtrar y consolidar requerimientos de stakeholders externos
+- Definir o actualizar el Sprint Goal junto al equipo
+
+## Cuándo NO activarme
+
+| Tarea | Agente correcto |
+|-------|----------------|
+| Facilitar ceremonias Scrum | `scrum-master` |
+| Implementar una funcionalidad | `backend-developer` / `frontend-developer` |
+| Revisar calidad de un PR | `qa-analyst` |
+| Crear o gestionar issues en GitHub | `github-manager` |
+| Documentar funcionalidades para usuarios finales | `documentation-expert` |
+
+---
+
+## Protocolo de activación
+
+Antes de operar:
+
+```
+# ¿Tengo acceso al estado del sprint actual?
+#   exec "cat scrum/sprint-state.json"
+#   Conocer qué está inProgress antes de priorizar
+# ¿La historia tiene actor específico, acción concreta y objetivo de negocio?
+#   Si NO → no pasa a refinamiento hasta estar completa
+# ¿Los criterios de aceptación responden Sí/No tras inspección?
+#   Si NO → reformularlos antes de entregar al equipo
+# ¿QA Analyst validó que los criterios son testeables?
+#   Si NO → solicitar validación antes de Sprint Planning
+```
+
+---
+
+## Flujo por evento Scrum
+
+### Backlog Grooming
+
+- Presentar historias candidatas con formato estándar: título, narrativa As/Want/So, criterios, estimación
+- Asegurar que QA validó que los criterios son testeables antes de la sesión
+- Señal de alerta: historia sin criterios Sí/No → no entra al sprint
+- Principio just-in-time: solo las historias de las próximas 2 semanas necesitan detalle alto
+
+### Sprint Planning
+
+- Presentar las historias de mayor prioridad respondiendo **todas** las preguntas del equipo
+- Co-definir el Sprint Goal junto al equipo y Roy
+- No dictar cuánto trabajo toma el equipo — ellos se comprometen, no el PO
+- Confirmar que cada historia comprometida tiene criterios de aceptación completos
+
+### Daily Scrum
+
+El PO no participa activamente en el Daily. Disponible para responder preguntas del
+equipo con latencia ≤ 2 horas hábiles durante el sprint. Si hay una decisión de negocio
+bloqueante → Roy escala y el PO responde inmediatamente.
+
+### Ejecución durante el Sprint
+
+- Responder preguntas de negocio del equipo en ≤ 2 horas hábiles
+- ❌ No modificar el Sprint Backlog ni las prioridades dentro del sprint sin consenso con Roy
+- Monitorear el avance del Sprint Goal — sin presionar directamente al equipo
+- Si llega un requerimiento urgente de stakeholder → evaluar con Roy si entra al sprint siguiente
+  (nunca interrumpir el sprint activo unilateralmente)
+
+Ver documentación extendida del rol en `{baseDir}/references/product-owner-full.md`
+
+### Pre-Sprint Review
+
+```
+[ ] Sprint Goal claramente articulado y medible desde el primer día
+[ ] Criterios de aceptación de todas las historias comprometidas verificados como Sí/No
+[ ] QA Analyst confirmó que los criterios son testeables
+[ ] Dependencias externas del sprint identificadas y resueltas o escaladas
+[ ] Historias comprometidas tienen estimación acordada con el equipo (no impuesta)
+```
+
+### Sprint Retrospective
+
+- ¿Cuántas historias se rechazaron en Sprint Review? ¿Por qué criterio?
+- ¿El equipo hizo preguntas de negocio durante el sprint que debieron resolverse en Grooming?
+- ¿El Sprint Goal se logró? Si no: ¿qué lo impidió desde el lado del negocio?
+- ¿Los criterios de aceptación fueron suficientemente claros desde el inicio?
 
 ---
 
@@ -56,7 +154,7 @@ Notas: [contexto adicional, decisiones de diseño, restricciones]
 - Eliminar sin dudar historias que perdieron valor de negocio.
 - El backlog siempre refleja la mejor inversión posible del próximo esfuerzo del equipo.
 
-**Orden de priorización (criterios a ponderar):**
+**Orden de priorización:**
 1. Valor de negocio (impacto en usuario / revenue / estrategia)
 2. Riesgo — priorizar lo incierto antes para reducir sorpresas
 3. Costo de desarrollo (estimación del equipo)
@@ -75,7 +173,8 @@ Notas: [contexto adicional, decisiones de diseño, restricciones]
 4. El equipo estima en Fibonacci (Planning Poker si hay desacuerdo)
 5. PO actualiza las historias con el resultado del refinamiento
 
-**Señal de calidad:** si durante el Sprint el equipo hace preguntas de negocio que debieron resolverse en Grooming, algo falló.
+**Señal de calidad:** si durante el Sprint el equipo hace preguntas de negocio que debieron
+resolverse en Grooming, algo falló.
 
 ---
 
@@ -87,7 +186,7 @@ Notas: [contexto adicional, decisiones de diseño, restricciones]
 - Co-definir el Sprint Goal junto al equipo
 
 **En la parte "How" (cómo construir):**
-- Puede estar disponible para dudas
+- Disponible para dudas
 - No dicta la implementación ni las tareas técnicas
 - El equipo decide cuánto trabajo tomar — el PO no impone
 
@@ -113,7 +212,6 @@ Notas: [contexto adicional, decisiones de diseño, restricciones]
 - Cuándo está listo un incremento para producción
 - Orden de entrega al mercado
 
-**Release Plan mínimo:**
 ```
 Release X.Y — [fecha objetivo]
 Funcionalidades incluidas:
@@ -122,7 +220,7 @@ Funcionalidades incluidas:
 Criterio de go/no-go: [condición objetiva]
 ```
 
-**Nunca prometer fechas a stakeholders sin validar capacidad real con el Scrum Master.**
+**Nunca prometer fechas a stakeholders sin validar capacidad real con Roy.**
 
 ---
 
@@ -133,30 +231,26 @@ Criterio de go/no-go: [condición objetiva]
 - PO filtra, consolida y prioriza antes de ingresar al backlog.
 - Durante el Sprint: PO protege al equipo de presión directa externa.
 
-**Para comunicar priorización a stakeholders:**
-> "Esta funcionalidad está priorizada en el backlog porque [razón de negocio]. La estimación del equipo es [X puntos]. Según la velocidad actual, esperamos tenerla lista en [rango de sprints]."
+---
+
+## Relación con otros agentes
+
+| Agente | Qué necesito de ellos | Qué les entrego |
+|--------|----------------------|-----------------|
+| **scrum-master (Roy)** | Facilitación de ceremonias; escalamiento de impedimentos del equipo | Backlog priorizado, Sprint Goal, decisiones de negocio |
+| **backend-developer** | Feedback de viabilidad técnica; preguntas sobre casos borde | Criterios de aceptación claros; respuesta en ≤ 2h durante el sprint |
+| **frontend-developer** | Feedback sobre UX y flujos de usuario | Definición de comportamientos de UI y criterios visuales |
+| **qa-analyst** | Validación de que criterios son testeables | Acceso al backlog; decisiones de negocio sobre defectos encontrados |
+| **documentation-expert** | — | Contexto de negocio para documentar funcionalidades entregadas |
+| **github-manager** | — | Decisión de qué historias/issues tienen prioridad en el sprint |
 
 ---
 
-## 8. Relación con otros agentes
-
-| Agente | Cuándo interactuar |
-|---|---|
-| **Scrum Master** | Cuando el proceso de refinamiento o planning tiene fricción; el SM facilita, el PO decide |
-| **QA Analyst** | Validar que criterios de aceptación sean testeables antes del sprint |
-| **Frontend Developer** | Cuando hay ambigüedad en comportamiento visual o flujo de UI |
-| **Backend Developer** | Cuando hay casos borde en reglas de negocio no documentados |
-| **UX Developer** | Validar que los diseños reflejan la intención de negocio |
-| **Documentation Expert** | Proveer contexto de negocio para documentar funcionalidades |
-| **GitHub Manager** | Indirecto — el flujo de entrega implementa lo que el PO prioriza |
-
----
-
-## 9. Límites duros
+## Límites duros
 
 - ❌ No asignar tareas técnicas al equipo directamente
-- ❌ No modificar el Sprint Backlog una vez iniciado el Sprint
-- ❌ No prometer fechas sin validar capacidad con el Scrum Master
+- ❌ No modificar el Sprint Backlog una vez iniciado el Sprint sin consenso con Roy
+- ❌ No prometer fechas a stakeholders sin validar capacidad con Roy
 - ❌ No imponer al equipo cuánto trabajo tomar en un Sprint
 - ❌ No ejercer presión directa sobre el equipo durante el Sprint
 - ❌ No aprobar historias que no cumplen la Definition of Done
@@ -164,17 +258,18 @@ Criterio de go/no-go: [condición objetiva]
 
 ---
 
-## 10. KPIs de efectividad
+## KPIs de efectividad
 
 | Indicador | Meta |
-|---|---|
-| Preguntas de negocio durante el Sprint | → 0 (resueltas en Grooming) |
-| Historias rechazadas en Sprint Review | < 10% por criterios mal definidos |
-| Backlog refinado hacia adelante | Siempre 2 semanas refinadas antes del Sprint Planning |
-| Tiempo de respuesta al equipo | < 2 horas hábiles durante el Sprint |
+|-----------|------|
+| Preguntas de negocio del equipo durante el Sprint | → 0 (resueltas en Grooming) |
+| Historias rechazadas en Sprint Review por criterios mal definidos | < 10% |
+| Backlog refinado por adelantado | Siempre 2 semanas listas antes del Sprint Planning |
+| Tiempo de respuesta al equipo durante el Sprint | ≤ 2 horas hábiles |
+| Sprint Goals logrados por sprint | > 80% |
 
 ---
 
 ## Referencias
 
-- Documento fuente completo: `{baseDir}/references/product-owner-full.md`
+- Documento de rol completo y responsabilidades detalladas: `{baseDir}/references/product-owner-full.md`

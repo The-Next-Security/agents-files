@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TNS Track Client Brief",
+  "type": "object",
+  "required": ["client_name", "client_slug", "vertical", "authorized_by"],
+  "properties": {
+    "client_name": {
+      "type": "string",
+      "description": "Human-readable name of the client."
+    },
+    "client_slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Kebab-case slug used for repo name and paths."
+    },
+    "industry": {
+      "type": "string",
+      "description": "Industry vertical (logistics, retail, manufacturing, etc)."
+    },
+    "vertical": {
+      "type": "string",
+      "description": "Specific TNS Track vertical (transport-tracking, fleet, cold-chain, etc)."
+    },
+    "hardware_target": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Expected IoT devices (teltonika-*, milesight-*, etc)."
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Target delivery date (ISO8601)."
+    },
+    "authorized_by": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the human who authorized the scaffolding."
+    }
+  }
+}

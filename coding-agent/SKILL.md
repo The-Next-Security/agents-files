@@ -1,316 +1,225 @@
 ---
 name: coding-agent
-description: 'Delegate coding tasks to Codex, Claude Code, or Pi agents via background process. Use when: (1) building/creating new features or apps, (2) reviewing PRs (spawn in temp dir), (3) refactoring large codebases, (4) iterative coding that needs file exploration. NOT for: simple one-liner fixes (just edit), reading code (use read tool), thread-bound ACP harness requests in chat (for example spawn/run Codex or Claude Code in a Discord thread; use sessions_spawn with runtime:"acp"), or any work in ~/clawd workspace (never spawn agents here). Claude Code: use --print --permission-mode bypassPermissions (no PTY). Codex/Pi/OpenCode: pty:true required.'
-metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "🧩",
-        "requires": { "anyBins": ["claude", "codex", "opencode", "pi"] },
-        "install":
-          [
-            {
-              "id": "node-claude",
-              "kind": "node",
-              "package": "@anthropic-ai/claude-code",
-              "bins": ["claude"],
-              "label": "Install Claude Code CLI (npm)",
-            },
-            {
-              "id": "node-codex",
-              "kind": "node",
-              "package": "@openai/codex",
-              "bins": ["codex"],
-              "label": "Install Codex CLI (npm)",
-            },
-          ],
-      },
-  }
+description: Ejecuta tareas de código ligeras y efímeras mediante un CLI de codificación disponible en el entorno (Codex, Claude Code, OpenCode, Pi o equivalente) — sin commits a ramas de producción ni apertura de PRs. Usar cuando Roy necesita ejecutar scripts ad-hoc, leer o analizar un repositorio, hacer chequeos rápidos o exploraciones de código que no justifican spawnear un worker persistente. Si la tarea requiere commits, PR o QA → usar agent-dispatch. Triggers: "script rápido", "ad-hoc", "chequea el repo", "lista archivos", "analiza este código", "ejecuta", "lee el repo", "quick check".
+version: 1.0.0
+license: CC-BY-NC-SA-4.0
+author: The-Next-Security
+updated: 2026-05-23
+user-invocable: true
+allowed-tools: Bash
+tags: cli execution ad-hoc script ephemeral codex claude-code orchestration
+compatibility: Requires at least one coding CLI available in PATH (codex, claude, opencode, or pi). No PTY required for Claude Code. PTY required for Codex/OpenCode/Pi.
+metadata: {"openclaw":{"emoji":"🧩","riskLevel":"medium","ownerAgent":"roy","requires":{"bins":[],"env":[]},"os":["linux","darwin"],"outputs":["scriptOutput","analysisReport"],"scrum":["execution"],"worksWithSkills":["agent-dispatch","tns-debugger-triage","agent-audit-trail","governance-wrapper"]}}
 ---
 
-# Coding Agent (bash-first)
+# Coding Agent
 
-Use **bash** (with optional background mode) for all coding agent work. Simple and effective.
+Ejecuta tareas de código ligeras y efímeras mediante el CLI de codificación disponible
+en el entorno. Roy orquesta — el CLI ejecuta. Nunca produce commits a ramas de producción
+ni abre PRs: eso es responsabilidad de los workers persistentes coordinados por
+`agent-dispatch`.
 
-## ⚠️ PTY Mode: Codex/Pi/OpenCode yes, Claude Code no
-
-For **Codex, Pi, and OpenCode**, PTY is still required (interactive terminal apps):
-
-```bash
-# ✅ Correct for Codex/Pi/OpenCode
-bash pty:true command:"codex exec 'Your prompt'"
-```
-
-For **Claude Code** (`claude` CLI), use `--print --permission-mode bypassPermissions` instead.
-`--dangerously-skip-permissions` with PTY can exit after the confirmation dialog.
-`--print` mode keeps full tool access and avoids interactive confirmation:
-
-```bash
-# ✅ Correct for Claude Code (no PTY needed)
-cd /path/to/project && claude --permission-mode bypassPermissions --print 'Your task'
-
-# For background execution: use background:true on the exec tool
-
-# ❌ Wrong for Claude Code
-bash pty:true command:"claude --dangerously-skip-permissions 'task'"
-```
-
-### Bash Tool Parameters
-
-| Parameter    | Type    | Description                                                                 |
-| ------------ | ------- | --------------------------------------------------------------------------- |
-| `command`    | string  | The shell command to run                                                    |
-| `pty`        | boolean | **Use for coding agents!** Allocates a pseudo-terminal for interactive CLIs |
-| `workdir`    | string  | Working directory (agent sees only this folder's context)                   |
-| `background` | boolean | Run in background, returns sessionId for monitoring                         |
-| `timeout`    | number  | Timeout in seconds (kills process on expiry)                                |
-| `elevated`   | boolean | Run on host instead of sandbox (if allowed)                                 |
-
-### Process Tool Actions (for background sessions)
-
-| Action      | Description                                          |
-| ----------- | ---------------------------------------------------- |
-| `list`      | List all running/recent sessions                     |
-| `poll`      | Check if session is still running                    |
-| `log`       | Get session output (with optional offset/limit)      |
-| `write`     | Send raw data to stdin                               |
-| `submit`    | Send data + newline (like typing and pressing Enter) |
-| `send-keys` | Send key tokens or hex bytes                         |
-| `paste`     | Paste text (with optional bracketed mode)            |
-| `kill`      | Terminate the session                                |
+**Límite crítico:** si la tarea tarda más de 30 minutos o requiere commits + PR →
+escalar a `agent-dispatch` inmediatamente.
 
 ---
 
-## Quick Start: One-Shot Tasks
+## Cuándo activarme
 
-For quick prompts/chats, create a temp git repo and run:
+- Ejecutar un script ad-hoc sin persistencia en el repo
+- Leer, analizar o explorar el código de un repositorio
+- Chequeos rápidos: listar archivos, verificar dependencias, inspeccionar configuración
+- Exploraciones de datos o transformaciones de una sola vez
+- Tareas de diagnóstico de soporte para `tns-debugger-triage` o `node-specialist`
 
-```bash
-# Quick chat (Codex needs a git repo!)
-SCRATCH=$(mktemp -d) && cd $SCRATCH && git init && codex exec "Your prompt here"
+## Cuándo NO activarme
 
-# Or in a real project - with PTY!
-bash pty:true workdir:~/Projects/myproject command:"codex exec 'Add error handling to the API calls'"
-```
-
-**Why git init?** Codex refuses to run outside a trusted git directory. Creating a temp repo solves this for scratch work.
-
----
-
-## The Pattern: workdir + background + pty
-
-For longer tasks, use background mode with PTY:
-
-```bash
-# Start agent in target directory (with PTY!)
-bash pty:true workdir:~/project background:true command:"codex exec --full-auto 'Build a snake game'"
-# Returns sessionId for tracking
-
-# Monitor progress
-process action:log sessionId:XXX
-
-# Check if done
-process action:poll sessionId:XXX
-
-# Send input (if agent asks a question)
-process action:write sessionId:XXX data:"y"
-
-# Submit with Enter (like typing "yes" and pressing Enter)
-process action:submit sessionId:XXX data:"yes"
-
-# Kill if needed
-process action:kill sessionId:XXX
-```
-
-**Why workdir matters:** Agent wakes up in a focused directory, doesn't wander off reading unrelated files (like your soul.md 😅).
+| Tarea | Skill correcta |
+|-------|---------------|
+| Feature completa con commits + PR | `agent-dispatch` |
+| Diagnóstico de bug con RCA | `tns-debugger-triage` |
+| Análisis profundo Node.js/TS | `node-specialist` |
+| Operaciones git complejas | `git-expert` (dentro del worker) |
+| Tarea > 30 min | `agent-dispatch` |
 
 ---
 
-## Codex CLI
+## Protocolo de activación
 
-**Model:** `gpt-5.2-codex` is the default (set in ~/.codex/config.toml)
+Antes de operar, confirmar:
 
-### Flags
-
-| Flag            | Effect                                             |
-| --------------- | -------------------------------------------------- |
-| `exec "prompt"` | One-shot execution, exits when done                |
-| `--full-auto`   | Sandboxed but auto-approves in workspace           |
-| `--yolo`        | NO sandbox, NO approvals (fastest, most dangerous) |
-
-### Building/Creating
-
-```bash
-# Quick one-shot (auto-approves) - remember PTY!
-bash pty:true workdir:~/project command:"codex exec --full-auto 'Build a dark mode toggle'"
-
-# Background for longer work
-bash pty:true workdir:~/project background:true command:"codex --yolo 'Refactor the auth module'"
 ```
-
-### Reviewing PRs
-
-**⚠️ CRITICAL: Never review PRs in OpenClaw's own project folder!**
-Clone to temp folder or use git worktree.
-
-```bash
-# Clone to temp for safe review
-REVIEW_DIR=$(mktemp -d)
-git clone https://github.com/user/repo.git $REVIEW_DIR
-cd $REVIEW_DIR && gh pr checkout 130
-bash pty:true workdir:$REVIEW_DIR command:"codex review --base origin/main"
-# Clean up after: trash $REVIEW_DIR
-
-# Or use git worktree (keeps main intact)
-git worktree add /tmp/pr-130-review pr-130-branch
-bash pty:true workdir:/tmp/pr-130-review command:"codex review --base main"
-```
-
-### Batch PR Reviews (parallel army!)
-
-```bash
-# Fetch all PR refs first
-git fetch origin '+refs/pull/*/head:refs/remotes/origin/pr/*'
-
-# Deploy the army - one Codex per PR (all with PTY!)
-bash pty:true workdir:~/project background:true command:"codex exec 'Review PR #86. git diff origin/main...origin/pr/86'"
-bash pty:true workdir:~/project background:true command:"codex exec 'Review PR #87. git diff origin/main...origin/pr/87'"
-
-# Monitor all
-process action:list
-
-# Post results to GitHub
-gh pr comment <PR#> --body "<review content>"
+# ¿La tarea tiene criterio de completitud claro?
+#   Si NO → definirlo antes de ejecutar
+# ¿La tarea requiere commits o PR?
+#   Si SÍ → NO activar. Usar agent-dispatch.
+# ¿Hay un CLI de codificación disponible en el entorno?
+#   Verificar disponibilidad antes de asumir: which codex / which claude / etc.
+# ¿La tarea podría afectar ramas protegidas (dev/main/master)?
+#   Si SÍ → bloquear. Governance-wrapper ya está activo, pero verificar explícitamente.
 ```
 
 ---
 
-## Claude Code
+## Flujo por evento Scrum
 
-```bash
-# Foreground
-bash workdir:~/project command:"claude --permission-mode bypassPermissions --print 'Your task'"
+### Backlog Grooming
 
-# Background
-bash workdir:~/project background:true command:"claude --permission-mode bypassPermissions --print 'Your task'"
+- Verificar que los repos de las stories comprometidas tienen al menos un CLI de
+  codificación disponible: `which codex`, `which claude`, `which opencode`, `which pi`
+- Identificar stories donde Roy necesitará exploración técnica previa (estructura
+  de código, dependencias, rutas) antes del Sprint Planning — agendar esas
+  exploraciones como tareas de coding-agent
+- Señal de alerta: si ningún CLI está disponible en el entorno → reportar a Felipe
+  vía Aníbal antes de que el sprint inicie; no planificar tareas que dependan de
+  esta skill
+
+### Sprint Planning
+
+- Confirmar disponibilidad del CLI en el entorno del sprint activo
+- Identificar qué stories requieren exploración técnica previa (chequeos de repo,
+  verificación de dependencias) que coding-agent puede resolver antes del inicio
+  de implementación
+- Las exploraciones de coding-agent son insumo para los task prompts de `agent-dispatch`
+  — planificar en ese orden: exploración → dispatch
+
+### Daily Scrum
+
 ```
+Ayer: [qué scripts o análisis ejecuté / qué exploraciones de repo realicé]
+Hoy: [qué tarea ligera ejecutaré / qué repo o código analizaré]
+Bloqueos: [CLI no disponible / tarea que superó 30 min y necesita escalar a agent-dispatch / worktree scratch no limpiado]
+```
+
+Bloqueo que afecta el avance del sprint → escalar al Scrum Master como impedimento
+en el Daily.
+
+### Ejecución durante el Sprint
+
+Ver procedimientos detallados en `{baseDir}/references/coding-agent-procedures.md`:
+- Detección de CLI disponible → sección "Detección de entorno"
+- Ejecución en foreground → sección "Ejecución foreground"
+- Ejecución en background + monitoreo → sección "Ejecución background"
+- Worktree scratch para operaciones de lectura → sección "Worktree scratch"
+- Límites de scope y cuándo escalar → sección "Límites de ejecución"
+
+### Pre-Sprint Review
+
+Checklist antes de cerrar ejecuciones de coding-agent en el Sprint:
+
+```
+[ ] Todas las tareas ejecutadas tuvieron CLI detectado previamente (sin asumir disponibilidad)
+[ ] Ninguna ejecución produjo commits o push a dev/main/master
+[ ] Worktrees scratch creados durante el Sprint fueron limpiados
+[ ] Ningún proceso en background quedó colgado (process action:poll verificado)
+[ ] Resultados reportados vía Roy → Aníbal (sin notificaciones directas)
+[ ] Tareas que superaron 30 min fueron escaladas a agent-dispatch correctamente
+```
+
+Si algún ítem falla → documentar en Sprint Retrospective como deuda operativa.
+
+### Sprint Retrospective
+
+- ¿Alguna tarea escaló a agent-dispatch en mitad de la ejecución? → ajustar criterio
+  de corte ligero/pesado para el próximo sprint
+- ¿Alguna ejecución produjo efectos secundarios en el repo (archivos residuales,
+  worktrees no limpiados)? → mejorar protocolo de limpieza
+- ¿El CLI usado fue siempre el más adecuado para la tarea? → revisar orden de preferencia
 
 ---
 
-## OpenCode
+## Detección de CLI disponible
 
-```bash
-bash pty:true workdir:~/project command:"opencode run 'Your task'"
-```
+Antes de cualquier ejecución, verificar qué CLI está disponible. No asumir.
 
----
+Orden de preferencia: `codex` → `claude` → `opencode` → `pi`
 
-## Pi Coding Agent
+Ver script de detección completo en:
+`{baseDir}/references/coding-agent-procedures.md#deteccion`
 
-```bash
-# Install: npm install -g @mariozechner/pi-coding-agent
-bash pty:true workdir:~/project command:"pi 'Your task'"
-
-# Non-interactive mode (PTY still recommended)
-bash pty:true command:"pi -p 'Summarize src/'"
-
-# Different provider/model
-bash pty:true command:"pi --provider openai --model gpt-4o-mini -p 'Your task'"
-```
-
-**Note:** Pi now has Anthropic prompt caching enabled (PR #584, merged Jan 2026)!
+Si ninguno está disponible → reportar a Felipe vía Aníbal. No intentar instalar CLIs.
 
 ---
 
-## Parallel Issue Fixing with git worktrees
+## Modos de ejecución por CLI
 
-For fixing multiple issues in parallel, use git worktrees:
+Cada CLI tiene su propio modo no-interactivo. Usar siempre el correcto:
 
-```bash
-# 1. Create worktrees for each issue
-git worktree add -b fix/issue-78 /tmp/issue-78 main
-git worktree add -b fix/issue-99 /tmp/issue-99 main
+| CLI | Modo no-interactivo | PTY requerido |
+|-----|--------------------|----|
+| `codex` | `codex exec "prompt"` o `codex --full-auto "prompt"` | ✅ Sí |
+| `claude` | `claude --permission-mode bypassPermissions --print "prompt"` | ❌ No |
+| `opencode` | `opencode run "prompt"` | ✅ Sí |
+| `pi` | `pi -p "prompt"` | ✅ Sí |
 
-# 2. Launch Codex in each (background + PTY!)
-bash pty:true workdir:/tmp/issue-78 background:true command:"pnpm install && codex --yolo 'Fix issue #78: <description>. Commit and push.'"
-bash pty:true workdir:/tmp/issue-99 background:true command:"pnpm install && codex --yolo 'Fix issue #99 from the approved ticket summary. Implement only the in-scope edits and commit after review.'"
-
-# 3. Monitor progress
-process action:list
-process action:log sessionId:XXX
-
-# 4. Create PRs after fixes
-cd /tmp/issue-78 && git push -u origin fix/issue-78
-gh pr create --repo user/repo --head fix/issue-78 --title "fix: ..." --body "..."
-
-# 5. Cleanup
-git worktree remove /tmp/issue-78
-git worktree remove /tmp/issue-99
-```
+**Regla:** nunca usar modo interactivo en ejecuciones autónomas. El CLI debe
+ejecutar y salir limpiamente.
 
 ---
 
-## ⚠️ Rules
+## Worktree scratch para operaciones de lectura
 
-1. **Use the right execution mode per agent**:
-   - Codex/Pi/OpenCode: `pty:true`
-   - Claude Code: `--print --permission-mode bypassPermissions` (no PTY required)
-2. **Respect tool choice** - if user asks for Codex, use Codex.
-   - Orchestrator mode: do NOT hand-code patches yourself.
-   - If an agent fails/hangs, respawn it or ask the user for direction, but don't silently take over.
-3. **Be patient** - don't kill sessions because they're "slow"
-4. **Monitor with process:log** - check progress without interfering
-5. **--full-auto for building** - auto-approves changes
-6. **vanilla for reviewing** - no special flags needed
-7. **Parallel is OK** - run many Codex processes at once for batch work
-8. **NEVER start Codex inside your OpenClaw state directory** (`$OPENCLAW_STATE_DIR`, default `~/.openclaw`) - it'll read your soul docs and get weird ideas about the org chart!
-9. **NEVER checkout branches in ~/Projects/openclaw/** - that's the LIVE OpenClaw instance!
+Si la tarea requiere explorar una rama específica sin afectar el worktree principal:
+
+```
+1. Crear directorio temporal aislado
+2. Crear worktree scratch sobre la rama target
+3. Ejecutar tarea en el scratch
+4. Limpiar al terminar: git worktree remove --force
+```
+
+**NUNCA** hacer checkout en el directorio de trabajo principal de Roy
+ni en los directorios de workers activos.
+
+Ver procedimiento completo en:
+`{baseDir}/references/coding-agent-procedures.md#worktree-scratch`
 
 ---
 
-## Progress Updates (Critical)
+## Relación con otros agentes
 
-When you spawn coding agents in the background, keep the user in the loop.
-
-- Send 1 short message when you start (what's running + where).
-- Then only update again when something changes:
-  - a milestone completes (build finished, tests passed)
-  - the agent asks a question / needs input
-  - you hit an error or need user action
-  - the agent finishes (include what changed + where)
-- If you kill a session, immediately say you killed it and why.
-
-This prevents the user from seeing only "Agent failed before reply" and having no idea what happened.
+| Agente | Qué necesito de ellos | Qué les entrego |
+|--------|----------------------|-----------------|
+| **agent-dispatch** | Señal de que la tarea superó el scope ligero → tomar el relevo | Resultado del análisis como insumo para el task prompt del worker |
+| **tns-debugger-triage** | — | Outputs de scripts de diagnóstico como evidencia para el RCA |
+| **agent-audit-trail** | — | Entry de ejecución: CLI usado, workdir, prompt, timestamp, resultado |
+| **governance-wrapper** | Validación pasiva (siempre activa) | Contexto de ejecución para evaluación de permisos |
 
 ---
 
-## Auto-Notify on Completion
+## Límites duros
 
-For long-running background tasks, append a wake trigger to your prompt so OpenClaw gets notified immediately when the agent finishes (instead of waiting for the next heartbeat):
-
-```
-... your task here.
-
-When completely finished, run this command to notify me:
-openclaw system event --text "Done: [brief summary of what was built]" --mode now
-```
-
-**Example:**
-
-```bash
-bash pty:true workdir:~/project background:true command:"codex --yolo exec 'Build a REST API for todos.
-
-When completely finished, run: openclaw system event --text \"Done: Built todos REST API with CRUD endpoints\" --mode now'"
-```
-
-This triggers an immediate wake event — Skippy gets pinged in seconds, not 10 minutes.
+- ❌ **Nunca** ejecutar con prompt que implique commit/push a `dev`, `main` o `master`
+- ❌ **Nunca** continuar si la tarea supera 30 minutos — escalar a `agent-dispatch`
+- ❌ **Nunca** ejecutar en el directorio de trabajo principal de Roy
+- ❌ **Nunca** ejecutar en el directorio de un worker activo (riesgo de corrupción de worktree)
+- ❌ **Nunca** instalar CLIs no disponibles — reportar ausencia a Felipe vía Aníbal
+- ❌ **Nunca** enviar notificaciones directas a Telegram — canal obligatorio: Roy → Aníbal → Felipe
+- ❌ **Nunca** asumir que un CLI específico está disponible sin verificar primero
+- ❌ **Nunca** usar modo interactivo con Claude Code — produce comportamiento impredecible
+- ❌ **Nunca** dejar worktrees scratch o procesos en background sin limpiar al finalizar
 
 ---
 
-## Learnings (Jan 2026)
+## KPIs de efectividad
 
-- **PTY is essential:** Coding agents are interactive terminal apps. Without `pty:true`, output breaks or agent hangs.
-- **Git repo required:** Codex won't run outside a git directory. Use `mktemp -d && git init` for scratch work.
-- **exec is your friend:** `codex exec "prompt"` runs and exits cleanly - perfect for one-shots.
-- **submit vs write:** Use `submit` to send input + Enter, `write` for raw data without newline.
-- **Sass works:** Codex responds well to playful prompts. Asked it to write a haiku about being second fiddle to a space lobster, got: _"Second chair, I code / Space lobster sets the tempo / Keys glow, I follow"_ 🦞
+| Indicador | Meta |
+|-----------|------|
+| Tareas ejecutadas sin commits/push no autorizados | 100% |
+| CLI detectado antes de cada ejecución (sin asumir disponibilidad) | 100% |
+| Tareas que superaron 30 min escaladas correctamente a agent-dispatch | 100% |
+| Worktrees scratch limpiados post-ejecución | 100% |
+| Notificaciones enviadas vía canal Roy → Aníbal (no directo) | 100% |
+
+---
+
+## Referencias
+
+- Detección de CLI disponible y orden de preferencia:
+  `{baseDir}/references/coding-agent-procedures.md#deteccion`
+- Ejecución foreground y background con monitoreo:
+  `{baseDir}/references/coding-agent-procedures.md#ejecucion`
+- Límites de ejecución y árbol de decisión de escalamiento:
+  `{baseDir}/references/coding-agent-procedures.md#limites`
+- Worktree scratch para operaciones de lectura aisladas:
+  `{baseDir}/references/coding-agent-procedures.md#worktree-scratch`
